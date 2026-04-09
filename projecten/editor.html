@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dashboard — Project Editor</title>
+  <link rel="stylesheet" href="../shared/theme.css"/>
+  <link rel="stylesheet" href="style.css"/>
+  <style>
+    /* EDITOR LAYOUT */
+    body { overflow: hidden; }
+    .editor-wrap { display: flex; margin-left: var(--sidebar); height: 100vh; }
+
+    /* CANVAS GEBIED (midden) */
+    .canvas-gebied { flex: 1; display: flex; flex-direction: column; background: var(--bg); overflow: hidden; }
+    .editor-topbar { display: flex; align-items: center; gap: .75rem; padding: .75rem 1.25rem; background: var(--surface); border-bottom: 1px solid var(--border); flex-shrink: 0; }
+    .editor-topbar h2 { font-size: .95rem; font-weight: 700; flex: 1; }
+    .project-naam-input { background: var(--card2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); padding: .4rem .75rem; font-size: .9rem; font-family: var(--font); width: 220px; }
+    .project-naam-input:focus { outline: none; border-color: var(--accent); }
+
+    .canvas-scroll { flex: 1; overflow: auto; display: flex; align-items: center; justify-content: center; padding: 2rem; }
+    .canvas { background: #1a1f2e; border: 2px dashed var(--border); border-radius: 16px;
+      width: 900px; min-height: 600px; position: relative; flex-shrink: 0;
+      box-shadow: 0 0 0 8px rgba(0,0,0,.3); }
+    .canvas.dragover { border-color: var(--accent); box-shadow: 0 0 0 8px rgba(99,102,241,.1); }
+    .canvas-leeg { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--muted); pointer-events: none; gap: .5rem; }
+    .canvas-leeg-icon { font-size: 2.5rem; opacity: .3; }
+
+    /* BLOKKEN OP CANVAS */
+    .canvas-blok {
+      position: absolute; cursor: move; user-select: none;
+      border: 2px solid transparent; border-radius: 10px;
+      transition: border-color .1s, box-shadow .1s;
+      min-width: 120px; min-height: 48px;
+    }
+    .canvas-blok:hover   { border-color: rgba(99,102,241,.5); }
+    .canvas-blok.actief  { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(99,102,241,.25); z-index: 10; }
+    .canvas-blok .resize-handle {
+      position: absolute; right: -5px; bottom: -5px;
+      width: 14px; height: 14px; background: var(--accent);
+      border-radius: 3px; cursor: se-resize; opacity: 0;
+      transition: opacity .15s;
+    }
+    .canvas-blok:hover .resize-handle, .canvas-blok.actief .resize-handle { opacity: 1; }
+
+    /* BLOK RENDERS */
+    .blok-tekst    { background: var(--card); border-radius: 8px; overflow: hidden; }
+    .blok-kaart    { background: var(--card); border-radius: 12px; border: 1px solid var(--border); overflow: hidden; }
+    .blok-tabel    { background: var(--card); border-radius: 12px; border: 1px solid var(--border); overflow: hidden; }
+    .blok-dropdown { background: var(--card); border-radius: 12px; border: 1px solid var(--border); overflow: hidden; }
+    .blok-lijst    { background: var(--card); border-radius: 12px; border: 1px solid var(--border); overflow: hidden; }
+    .blok-scheider { height: 2px; background: var(--border); border-radius: 999px; }
+    .blok-kop      { background: var(--card2); border-radius: 10px; overflow: hidden; }
+
+    /* PANEEL RECHTS (blok bibliotheek) */
+    .paneel-rechts { width: 220px; background: var(--surface); border-left: 1px solid var(--border); display: flex; flex-direction: column; overflow-y: auto; flex-shrink: 0; }
+    .paneel-sectie { padding: .75rem; border-bottom: 1px solid var(--border); }
+    .paneel-sectie h3 { font-size: .65rem; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin-bottom: .6rem; }
+    .blok-optie {
+      display: flex; align-items: center; gap: .6rem; padding: .55rem .65rem;
+      background: var(--card); border: 1px solid var(--border); border-radius: 8px;
+      margin-bottom: .4rem; cursor: grab; transition: all .15s; font-size: .82rem;
+      user-select: none;
+    }
+    .blok-optie:hover { border-color: var(--accent); color: var(--accent); transform: translateX(-2px); }
+    .blok-optie:active { cursor: grabbing; }
+    .blok-icoon { font-size: 1rem; width: 20px; text-align: center; }
+
+    /* PANEEL RECHTS — EIGENSCHAPPEN */
+    .eigenschappen { flex: 1; padding: .75rem; overflow-y: auto; }
+    .eigenschappen h3 { font-size: .65rem; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin-bottom: .75rem; }
+    .eigen-rij { margin-bottom: .65rem; }
+    .eigen-rij label { display: block; font-size: .7rem; color: var(--muted); margin-bottom: .2rem; text-transform: uppercase; letter-spacing: .05em; }
+    .eigen-rij input, .eigen-rij select, .eigen-rij textarea {
+      width: 100%; background: var(--card2); border: 1px solid var(--border);
+      border-radius: 7px; color: var(--text); padding: .4rem .6rem;
+      font-size: .82rem; font-family: var(--font);
+    }
+    .eigen-rij input:focus, .eigen-rij select:focus, .eigen-rij textarea:focus { outline: none; border-color: var(--accent); }
+    .eigen-rij textarea { resize: vertical; min-height: 60px; }
+    .eigen-rij input[type=color] { padding: .2rem; height: 32px; cursor: pointer; }
+    .eigen-rij input[type=range] { padding: 0; }
+    .geen-selectie { color: var(--muted); font-size: .82rem; text-align: center; padding: 1.5rem .5rem; }
+
+    /* PROJECTEN LIJST (linker paneel in overzicht) */
+    .project-lijst { padding: .75rem; border-bottom: 1px solid var(--border); }
+    .project-item { display: flex; align-items: center; justify-content: space-between; padding: .4rem .5rem; border-radius: 7px; cursor: pointer; font-size: .82rem; transition: background .12s; }
+    .project-item:hover { background: var(--card); }
+    .project-item.actief { background: rgba(99,102,241,.12); color: var(--accent); }
+  </style>
+</head>
+<body>
+  <nav class="sidebar"></nav>
+  <div class="editor-wrap">
+
+    <!-- CANVAS MIDDEN -->
+    <div class="canvas-gebied">
+      <div class="editor-topbar">
+        <input type="text" class="project-naam-input" id="project-naam" placeholder="Projectnaam…" value="Nieuw Project"/>
+        <button class="btn btn-ghost" onclick="nieuwProject()">+ Nieuw</button>
+        <select class="btn btn-ghost" id="project-select" onchange="laadProject(this.value)" style="cursor:pointer"></select>
+        <div style="flex:1"></div>
+        <button class="btn" onclick="exporteerJSON()">📋 Kopieer JSON</button>
+        <button class="btn btn-green" onclick="slaanOp()">💾 Opslaan</button>
+        <button class="btn btn-red" style="padding:.45rem .65rem" onclick="verwijderProject()" title="Project verwijderen">🗑</button>
+      </div>
+
+      <div class="canvas-scroll">
+        <div class="canvas" id="canvas"
+          ondragover="event.preventDefault();event.currentTarget.classList.add('dragover')"
+          ondragleave="event.currentTarget.classList.remove('dragover')"
+          ondrop="dropOpCanvas(event)">
+          <div class="canvas-leeg" id="canvas-leeg">
+            <div class="canvas-leeg-icon">🎨</div>
+            <div style="font-weight:600">Sleep blokken hierheen</div>
+            <div style="font-size:.8rem">Kies een blok uit het paneel rechts</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PANEEL RECHTS -->
+    <div class="paneel-rechts">
+      <!-- BLOK BIBLIOTHEEK -->
+      <div class="paneel-sectie">
+        <h3>Blokken</h3>
+        <div class="blok-optie" draggable="true" ondragstart="startDrag(event,'tekst')"><span class="blok-icoon">📝</span>Tekst</div>
+        <div class="blok-optie" draggable="true" ondragstart="startDrag(event,'kop')"><span class="blok-icoon">🔤</span>Koptekst</div>
+        <div class="blok-optie" draggable="true" ondragstart="startDrag(event,'kaart')"><span class="blok-icoon">📊</span>Kaart / Stat</div>
+        <div class="blok-optie" draggable="true" ondragstart="startDrag(event,'tabel')"><span class="blok-icoon">📋</span>Tabel</div>
+        <div class="blok-optie" draggable="true" ondragstart="startDrag(event,'lijst')"><span class="blok-icoon">📌</span>Lijst</div>
+        <div class="blok-optie" draggable="true" ondragstart="startDrag(event,'dropdown')"><span class="blok-icoon">🔽</span>Dropdown</div>
+        <div class="blok-optie" draggable="true" ondragstart="startDrag(event,'invoer')"><span class="blok-icoon">✏️</span>Invoerveld</div>
+        <div class="blok-optie" draggable="true" ondragstart="startDrag(event,'knop')"><span class="blok-icoon">🔘</span>Knop</div>
+        <div class="blok-optie" draggable="true" ondragstart="startDrag(event,'scheider')"><span class="blok-icoon">➖</span>Scheider</div>
+        <div class="blok-optie" draggable="true" ondragstart="startDrag(event,'afbeelding')"><span class="blok-icoon">🖼️</span>Afbeelding URL</div>
+      </div>
+
+      <!-- EIGENSCHAPPEN -->
+      <div class="eigenschappen" id="eigenschappen-paneel">
+        <h3>Eigenschappen</h3>
+        <div class="geen-selectie" id="geen-sel">Klik een blok om het te bewerken</div>
+        <div id="eigen-velden" style="display:none"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../shared/api.js"></script>
+  <script src="../shared/app.js"></script>
+  <script>
+  // ═══════════════════════════════════════════
+  // EDITOR STATE
+  // ═══════════════════════════════════════════
+  let blokken = [];          // alle blokken op canvas
+  let actiefBlok = null;     // huidig geselecteerd blok id
+  let sleepType = null;      // type blok dat gesleept wordt
+  let sleepOffset = {x:0,y:0};
+  let projecten = {};        // { naam: [blokken] }
+  let huidigProject = null;
+
+  // Uniek ID genereren
+  const uid = () => 'blok_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);
+
+  // ═══════════════════════════════════════════
+  // BLOK DEFINITIES — standaard waarden per type
+  // ═══════════════════════════════════════════
+  const DEFAULTS = {
+    tekst: {
+      inhoud: 'Klik om tekst te bewerken',
+      stijl: { achtergrond:'#121620', tekstKleur:'#e2e8f0', letterGrootte:14, letterGewicht:400, padding:12, randRadius:8, randKleur:'#1e2535', randDikte:1, uitlijning:'left', regelHoogte:1.5 }
+    },
+    kop: {
+      inhoud: 'Koptekst',
+      stijl: { achtergrond:'#0d1017', tekstKleur:'#e2e8f0', letterGrootte:20, letterGewicht:700, padding:16, randRadius:10, randKleur:'transparent', randDikte:0, uitlijning:'left', regelHoogte:1.2 }
+    },
+    kaart: {
+      titel: 'Statistiek', waarde: '€ 0,00', subtitel: 'omschrijving',
+      stijl: { achtergrond:'#121620', titelKleur:'#64748b', waardeKleur:'#34d399', subtitelKleur:'#64748b', letterGrootte:14, padding:16, randRadius:14, randKleur:'#1e2535', randDikte:1 }
+    },
+    tabel: {
+      kolommen: 'Naam,Waarde,Status', rijen: 'Item 1,100,Actief\nItem 2,200,Inactief',
+      stijl: { achtergrond:'#121620', tekstKleur:'#e2e8f0', headerKleur:'#64748b', letterGrootte:13, padding:12, randRadius:14, randKleur:'#1e2535', randDikte:1 }
+    },
+    lijst: {
+      items: 'Item 1\nItem 2\nItem 3', stijlType: 'bullet',
+      stijl: { achtergrond:'#121620', tekstKleur:'#e2e8f0', accentKleur:'#6366f1', letterGrootte:14, padding:14, randRadius:12, randKleur:'#1e2535', randDikte:1 }
+    },
+    dropdown: {
+      label: 'Kies optie', opties: 'Optie 1\nOptie 2\nOptie 3',
+      stijl: { achtergrond:'#121620', tekstKleur:'#e2e8f0', letterGrootte:14, padding:12, randRadius:10, randKleur:'#1e2535', randDikte:1 }
+    },
+    invoer: {
+      label: 'Veldnaam', placeholder: 'Typ hier…', type: 'text',
+      stijl: { achtergrond:'#121620', tekstKleur:'#e2e8f0', letterGrootte:14, padding:12, randRadius:10, randKleur:'#1e2535', randDikte:1 }
+    },
+    knop: {
+      tekst: 'Klik hier', variant: 'accent',
+      stijl: { letterGrootte:14, padding:10, randRadius:8 }
+    },
+    scheider: {
+      stijl: { kleur:'#1e2535', dikte:2, randRadius:999, marge:8 }
+    },
+    afbeelding: {
+      url: 'https://via.placeholder.com/300x200', alt: 'Afbeelding',
+      stijl: { randRadius:10, breedte:'100%', hoogte:'auto' }
+    },
+  };
+
+  // ═══════════════════════════════════════════
+  // DRAG VAN PANEEL NAAR CANVAS
+  // ═══════════════════════════════════════════
+  function startDrag(event, type) { sleepType = type; event.dataTransfer.effectAllowed='copy'; }
+
+  function dropOpCanvas(event) {
+    event.preventDefault();
+    document.getElementById('canvas').classList.remove('dragover');
+    if (!sleepType) return;
+    const canvas = document.getElementById('canvas');
+    const rect = canvas.getBoundingClientRect();
+    const x = Math.max(0, Math.round(event.clientX - rect.left - 60));
+    const y = Math.max(0, Math.round(event.clientY - rect.top  - 24));
+    voegBlokToe(sleepType, x, y);
+    sleepType = null;
+  }
+
+  function voegBlokToe(type, x=40, y=40) {
+    const def = DEFAULTS[type] || DEFAULTS.tekst;
+    const blok = {
+      id: uid(), type,
+      x, y,
+      breedte: type==='scheider'?400 : type==='kop'?500 : type==='tabel'?500 : type==='lijst'?260 : type==='kaart'?220 : 280,
+      hoogte:  type==='scheider'?12  : type==='kop'?56  : type==='tabel'?180 : type==='lijst'?150 : type==='kaart'?110 : 80,
+      ...JSON.parse(JSON.stringify(def))  // deep copy van defaults
+    };
+    blokken.push(blok);
+    renderCanvas();
+    selecteerBlok(blok.id);
+  }
+
+  // ═══════════════════════════════════════════
+  // CANVAS RENDEREN
+  // ═══════════════════════════════════════════
+  function renderCanvas() {
+    const canvas = document.getElementById('canvas');
+    document.getElementById('canvas-leeg').style.display = blokken.length ? 'none' : 'flex';
+
+    // Verwijder alle blokken maar behoud de leeg-indicator
+    canvas.querySelectorAll('.canvas-blok').forEach(el=>el.remove());
+
+    blokken.forEach(blok => {
+      const el = document.createElement('div');
+      el.className = 'canvas-blok' + (actiefBlok===blok.id?' actief':'');
+      el.id = 'blok-' + blok.id;
+      el.style.cssText = `left:${blok.x}px;top:${blok.y}px;width:${blok.breedte}px;height:${blok.hoogte}px`;
+      el.innerHTML = blokHTML(blok) + '<div class="resize-handle" data-id="'+blok.id+'"></div>';
+      el.addEventListener('mousedown', e => { if(!e.target.classList.contains('resize-handle')) startBlokSleep(e, blok.id); });
+      el.addEventListener('click', e => { e.stopPropagation(); selecteerBlok(blok.id); });
+      canvas.appendChild(el);
+    });
+
+    // Resize handles
+    canvas.querySelectorAll('.resize-handle').forEach(h => h.addEventListener('mousedown', e => { e.stopPropagation(); startResize(e, h.dataset.id); }));
+  }
+
+  function blokHTML(blok) {
+    const s = blok.stijl || {};
+    const bs = `background:${s.achtergrond||'#121620'};border-radius:${s.randRadius||8}px;border:${s.randDikte||1}px solid ${s.randKleur||'#1e2535'};padding:${s.padding||12}px;width:100%;height:100%;overflow:hidden;box-sizing:border-box;`;
+
+    switch(blok.type) {
+      case 'tekst': return `<div style="${bs}color:${s.tekstKleur||'#e2e8f0'};font-size:${s.letterGrootte||14}px;font-weight:${s.letterGewicht||400};text-align:${s.uitlijning||'left'};line-height:${s.regelHoogte||1.5}">${blok.inhoud||''}</div>`;
+
+      case 'kop': return `<div style="${bs}color:${s.tekstKleur||'#e2e8f0'};font-size:${s.letterGrootte||20}px;font-weight:${s.letterGewicht||700};text-align:${s.uitlijning||'left'};display:flex;align-items:center">${blok.inhoud||'Koptekst'}</div>`;
+
+      case 'kaart': return `<div style="${bs}display:flex;flex-direction:column;justify-content:space-between">
+        <div style="font-size:${(s.letterGrootte||14)-2}px;color:${s.titelKleur||'#64748b'};text-transform:uppercase;letter-spacing:.08em;margin-bottom:.25rem">${blok.titel||'Titel'}</div>
+        <div style="font-size:${(s.letterGrootte||14)+8}px;font-weight:700;color:${s.waardeKleur||'#34d399'};line-height:1.1">${blok.waarde||'€ 0,00'}</div>
+        <div style="font-size:${(s.letterGrootte||14)-2}px;color:${s.subtitelKleur||'#64748b'};margin-top:.2rem">${blok.subtitel||''}</div>
+        </div>`;
+
+      case 'tabel': {
+        const kols = (blok.kolommen||'').split(',').map(k=>k.trim());
+        const rijen = (blok.rijen||'').split('\n').map(r=>r.split(',').map(c=>c.trim()));
+        return `<div style="${bs}padding:0;overflow:hidden">
+          <table style="width:100%;border-collapse:collapse;font-size:${s.letterGrootte||13}px">
+            <thead><tr>${kols.map(k=>`<th style="padding:8px 10px;border-bottom:1px solid ${s.randKleur||'#1e2535'};color:${s.headerKleur||'#64748b'};text-align:left;font-size:.75em;text-transform:uppercase;letter-spacing:.07em;white-space:nowrap">${k}</th>`).join('')}</tr></thead>
+            <tbody>${rijen.map(r=>`<tr>${r.map(c=>`<td style="padding:7px 10px;border-bottom:1px solid ${s.randKleur||'#1e2535'};color:${s.tekstKleur||'#e2e8f0'}">${c}</td>`).join('')}</tr>`).join('')}</tbody>
+          </table></div>`;
+      }
+
+      case 'lijst': {
+        const items = (blok.items||'').split('\n').filter(Boolean);
+        const bullet = blok.stijlType==='nummers' ? 'decimal' : blok.stijlType==='vinkjes' ? 'none' : 'none';
+        const prefix = i => blok.stijlType==='nummers' ? `${i+1}.` : blok.stijlType==='vinkjes' ? '✓' : '•';
+        return `<div style="${bs}"><ul style="list-style:none;padding:0;margin:0">${items.map((item,i)=>`<li style="display:flex;gap:.5rem;align-items:flex-start;padding:.25rem 0;color:${s.tekstKleur||'#e2e8f0'};font-size:${s.letterGrootte||14}px"><span style="color:${s.accentKleur||'#6366f1'};flex-shrink:0">${prefix(i)}</span>${item}</li>`).join('')}</ul></div>`;
+      }
+
+      case 'dropdown': {
+        const opties = (blok.opties||'').split('\n').filter(Boolean);
+        return `<div style="${bs}"><label style="display:block;font-size:.72rem;color:#64748b;margin-bottom:.3rem;text-transform:uppercase;letter-spacing:.06em">${blok.label||'Kies optie'}</label>
+          <select style="width:100%;background:#0d1017;border:1px solid ${s.randKleur||'#1e2535'};border-radius:7px;color:${s.tekstKleur||'#e2e8f0'};padding:.4rem .6rem;font-size:${s.letterGrootte||14}px;pointer-events:none">${opties.map(o=>`<option>${o}</option>`).join('')}</select></div>`;
+      }
+
+      case 'invoer': return `<div style="${bs}"><label style="display:block;font-size:.72rem;color:#64748b;margin-bottom:.3rem;text-transform:uppercase;letter-spacing:.06em">${blok.label||'Label'}</label>
+        <input type="${blok.type||'text'}" placeholder="${blok.placeholder||'Typ hier…'}" disabled style="width:100%;background:#0d1017;border:1px solid ${s.randKleur||'#1e2535'};border-radius:7px;color:${s.tekstKleur||'#e2e8f0'};padding:.4rem .6rem;font-size:${s.letterGrootte||14}px"/></div>`;
+
+      case 'knop': {
+        const kleuren = { accent:'rgba(99,102,241,.12),#6366f1,rgba(99,102,241,.25)', groen:'rgba(52,211,153,.12),#34d399,rgba(52,211,153,.25)', rood:'rgba(248,113,113,.12),#f87171,rgba(248,113,113,.25)', geel:'rgba(251,191,36,.12),#fbbf24,rgba(251,191,36,.25)' };
+        const [bg,klr,border] = (kleuren[blok.variant]||kleuren.accent).split(',');
+        return `<div style="${bs}display:flex;align-items:center;justify-content:center"><button disabled style="background:${bg};color:${klr};border:1px solid ${border};border-radius:${s.randRadius||8}px;padding:.45rem 1rem;font-size:${s.letterGrootte||14}px;font-weight:600;cursor:default">${blok.tekst||'Knop'}</button></div>`;
+      }
+
+      case 'scheider': return `<div style="width:100%;height:${s.dikte||2}px;background:${s.kleur||'#1e2535'};border-radius:${s.randRadius||999}px;margin:${s.marge||8}px 0"></div>`;
+
+      case 'afbeelding': return `<div style="${bs}padding:0;overflow:hidden"><img src="${blok.url||''}" alt="${blok.alt||''}" style="width:${s.breedte||'100%'};height:${s.hoogte||'auto'};object-fit:cover;border-radius:${s.randRadius||10}px;display:block"/></div>`;
+
+      default: return `<div style="${bs}color:#64748b;font-size:.8rem">Onbekend blok</div>`;
+    }
+  }
+
+  // ═══════════════════════════════════════════
+  // SELECTIE & EIGENSCHAPPEN
+  // ═══════════════════════════════════════════
+  function selecteerBlok(id) {
+    actiefBlok = id;
+    renderCanvas();
+    toonEigenschappen(id);
+  }
+
+  document.getElementById('canvas').addEventListener('click', e => {
+    if (e.target.id==='canvas' || e.target.classList.contains('canvas-leeg') || e.target.closest('.canvas-leeg')) {
+      actiefBlok = null; renderCanvas(); toonEigenschappen(null);
+    }
+  });
+
+  function toonEigenschappen(id) {
+    document.getElementById('geen-sel').style.display = id ? 'none' : 'block';
+    document.getElementById('eigen-velden').style.display = id ? 'block' : 'none';
+    if (!id) return;
+    const blok = blokken.find(b=>b.id===id);
+    if (!blok) return;
+    const s = blok.stijl || {};
+    const velden = eigenVelden(blok, s);
+    document.getElementById('eigen-velden').innerHTML = `
+      <div class="eigen-rij"><label>Type</label><div style="font-size:.82rem;color:var(--muted)">${blok.type}</div></div>
+      <div class="eigen-rij"><label>X positie</label><input type="number" value="${blok.x}" onchange="updateBlok('${id}','x',+this.value)"/></div>
+      <div class="eigen-rij"><label>Y positie</label><input type="number" value="${blok.y}" onchange="updateBlok('${id}','y',+this.value)"/></div>
+      <div class="eigen-rij"><label>Breedte</label><input type="number" value="${blok.breedte}" onchange="updateBlok('${id}','breedte',+this.value)"/></div>
+      <div class="eigen-rij"><label>Hoogte</label><input type="number" value="${blok.hoogte}" onchange="updateBlok('${id}','hoogte',+this.value)"/></div>
+      ${velden}
+      <div class="eigen-rij"><label>Achtergrond</label><input type="color" value="${s.achtergrond||'#121620'}" oninput="updateStijl('${id}','achtergrond',this.value)"/></div>
+      <div class="eigen-rij"><label>Randkleur</label><input type="color" value="${s.randKleur||'#1e2535'}" oninput="updateStijl('${id}','randKleur',this.value)"/></div>
+      <div class="eigen-rij"><label>Randdikte</label><input type="number" min="0" max="8" value="${s.randDikte??1}" onchange="updateStijl('${id}','randDikte',+this.value)"/></div>
+      <div class="eigen-rij"><label>Randradius</label><input type="number" min="0" max="40" value="${s.randRadius||8}" onchange="updateStijl('${id}','randRadius',+this.value)"/></div>
+      <div class="eigen-rij"><label>Padding</label><input type="number" min="0" max="48" value="${s.padding||12}" onchange="updateStijl('${id}','padding',+this.value)"/></div>
+      <hr style="border-color:var(--border);margin:.75rem 0"/>
+      <button class="btn btn-red" style="width:100%;justify-content:center" onclick="verwijderBlok('${id}')">🗑 Verwijder blok</button>`;
+  }
+
+  function eigenVelden(blok, s) {
+    switch(blok.type) {
+      case 'tekst': return `
+        <div class="eigen-rij"><label>Inhoud</label><textarea onchange="updateBlok('${blok.id}','inhoud',this.value)">${blok.inhoud||''}</textarea></div>
+        <div class="eigen-rij"><label>Tekstkleur</label><input type="color" value="${s.tekstKleur||'#e2e8f0'}" oninput="updateStijl('${blok.id}','tekstKleur',this.value)"/></div>
+        <div class="eigen-rij"><label>Lettergrootte</label><input type="number" min="8" max="72" value="${s.letterGrootte||14}" onchange="updateStijl('${blok.id}','letterGrootte',+this.value)"/></div>
+        <div class="eigen-rij"><label>Lettergewicht</label><select onchange="updateStijl('${blok.id}','letterGewicht',+this.value)"><option value="400" ${s.letterGewicht==400?'selected':''}>Normaal</option><option value="600" ${s.letterGewicht==600?'selected':''}>Semi-vet</option><option value="700" ${s.letterGewicht==700?'selected':''}>Vet</option></select></div>
+        <div class="eigen-rij"><label>Uitlijning</label><select onchange="updateStijl('${blok.id}','uitlijning',this.value)"><option ${s.uitlijning==='left'?'selected':''}>left</option><option ${s.uitlijning==='center'?'selected':''}>center</option><option ${s.uitlijning==='right'?'selected':''}>right</option></select></div>
+        <div class="eigen-rij"><label>Regelhoogte</label><input type="number" min="1" max="3" step="0.1" value="${s.regelHoogte||1.5}" onchange="updateStijl('${blok.id}','regelHoogte',+this.value)"/></div>`;
+      case 'kop': return `
+        <div class="eigen-rij"><label>Tekst</label><input type="text" value="${blok.inhoud||''}" oninput="updateBlok('${blok.id}','inhoud',this.value)"/></div>
+        <div class="eigen-rij"><label>Tekstkleur</label><input type="color" value="${s.tekstKleur||'#e2e8f0'}" oninput="updateStijl('${blok.id}','tekstKleur',this.value)"/></div>
+        <div class="eigen-rij"><label>Lettergrootte</label><input type="number" min="12" max="72" value="${s.letterGrootte||20}" onchange="updateStijl('${blok.id}','letterGrootte',+this.value)"/></div>
+        <div class="eigen-rij"><label>Uitlijning</label><select onchange="updateStijl('${blok.id}','uitlijning',this.value)"><option ${s.uitlijning==='left'?'selected':''}>left</option><option ${s.uitlijning==='center'?'selected':''}>center</option><option ${s.uitlijning==='right'?'selected':''}>right</option></select></div>`;
+      case 'kaart': return `
+        <div class="eigen-rij"><label>Titel</label><input type="text" value="${blok.titel||''}" oninput="updateBlok('${blok.id}','titel',this.value)"/></div>
+        <div class="eigen-rij"><label>Waarde</label><input type="text" value="${blok.waarde||''}" oninput="updateBlok('${blok.id}','waarde',this.value)"/></div>
+        <div class="eigen-rij"><label>Subtitel</label><input type="text" value="${blok.subtitel||''}" oninput="updateBlok('${blok.id}','subtitel',this.value)"/></div>
+        <div class="eigen-rij"><label>Titelkleur</label><input type="color" value="${s.titelKleur||'#64748b'}" oninput="updateStijl('${blok.id}','titelKleur',this.value)"/></div>
+        <div class="eigen-rij"><label>Waardeклeur</label><input type="color" value="${s.waardeKleur||'#34d399'}" oninput="updateStijl('${blok.id}','waardeKleur',this.value)"/></div>`;
+      case 'tabel': return `
+        <div class="eigen-rij"><label>Kolommen (komma)</label><input type="text" value="${blok.kolommen||''}" oninput="updateBlok('${blok.id}','kolommen',this.value)"/></div>
+        <div class="eigen-rij"><label>Rijen (enter=rij, komma=cel)</label><textarea onchange="updateBlok('${blok.id}','rijen',this.value)">${blok.rijen||''}</textarea></div>
+        <div class="eigen-rij"><label>Tekstkleur</label><input type="color" value="${s.tekstKleur||'#e2e8f0'}" oninput="updateStijl('${blok.id}','tekstKleur',this.value)"/></div>
+        <div class="eigen-rij"><label>Headerkleur</label><input type="color" value="${s.headerKleur||'#64748b'}" oninput="updateStijl('${blok.id}','headerKleur',this.value)"/></div>`;
+      case 'lijst': return `
+        <div class="eigen-rij"><label>Items (één per regel)</label><textarea onchange="updateBlok('${blok.id}','items',this.value)">${blok.items||''}</textarea></div>
+        <div class="eigen-rij"><label>Stijl</label><select onchange="updateBlok('${blok.id}','stijlType',this.value)"><option value="bullet" ${blok.stijlType==='bullet'?'selected':''}>Bullets •</option><option value="nummers" ${blok.stijlType==='nummers'?'selected':''}>Nummers 1.</option><option value="vinkjes" ${blok.stijlType==='vinkjes'?'selected':''}>Vinkjes ✓</option></select></div>
+        <div class="eigen-rij"><label>Tekstkleur</label><input type="color" value="${s.tekstKleur||'#e2e8f0'}" oninput="updateStijl('${blok.id}','tekstKleur',this.value)"/></div>
+        <div class="eigen-rij"><label>Accentkleur</label><input type="color" value="${s.accentKleur||'#6366f1'}" oninput="updateStijl('${blok.id}','accentKleur',this.value)"/></div>`;
+      case 'dropdown': return `
+        <div class="eigen-rij"><label>Label</label><input type="text" value="${blok.label||''}" oninput="updateBlok('${blok.id}','label',this.value)"/></div>
+        <div class="eigen-rij"><label>Opties (één per regel)</label><textarea onchange="updateBlok('${blok.id}','opties',this.value)">${blok.opties||''}</textarea></div>`;
+      case 'invoer': return `
+        <div class="eigen-rij"><label>Label</label><input type="text" value="${blok.label||''}" oninput="updateBlok('${blok.id}','label',this.value)"/></div>
+        <div class="eigen-rij"><label>Placeholder</label><input type="text" value="${blok.placeholder||''}" oninput="updateBlok('${blok.id}','placeholder',this.value)"/></div>
+        <div class="eigen-rij"><label>Type</label><select onchange="updateBlok('${blok.id}','inputType',this.value)"><option value="text">Tekst</option><option value="number">Getal</option><option value="date">Datum</option><option value="email">Email</option></select></div>`;
+      case 'knop': return `
+        <div class="eigen-rij"><label>Tekst</label><input type="text" value="${blok.tekst||'Knop'}" oninput="updateBlok('${blok.id}','tekst',this.value)"/></div>
+        <div class="eigen-rij"><label>Variant</label><select onchange="updateBlok('${blok.id}','variant',this.value)"><option value="accent" ${blok.variant==='accent'?'selected':''}>Paars</option><option value="groen" ${blok.variant==='groen'?'selected':''}>Groen</option><option value="rood" ${blok.variant==='rood'?'selected':''}>Rood</option><option value="geel" ${blok.variant==='geel'?'selected':''}>Geel</option></select></div>`;
+      case 'scheider': return `
+        <div class="eigen-rij"><label>Kleur</label><input type="color" value="${s.kleur||'#1e2535'}" oninput="updateStijl('${blok.id}','kleur',this.value)"/></div>
+        <div class="eigen-rij"><label>Dikte (px)</label><input type="number" min="1" max="16" value="${s.dikte||2}" onchange="updateStijl('${blok.id}','dikte',+this.value)"/></div>`;
+      case 'afbeelding': return `
+        <div class="eigen-rij"><label>URL</label><input type="url" value="${blok.url||''}" oninput="updateBlok('${blok.id}','url',this.value)"/></div>
+        <div class="eigen-rij"><label>Alt tekst</label><input type="text" value="${blok.alt||''}" oninput="updateBlok('${blok.id}','alt',this.value)"/></div>`;
+      default: return '';
+    }
+  }
+
+  function updateBlok(id, veld, waarde) {
+    const blok = blokken.find(b=>b.id===id);
+    if (!blok) return;
+    blok[veld] = waarde;
+    renderCanvas();
+  }
+
+  function updateStijl(id, veld, waarde) {
+    const blok = blokken.find(b=>b.id===id);
+    if (!blok) return;
+    blok.stijl = blok.stijl || {};
+    blok.stijl[veld] = waarde;
+    renderCanvas();
+  }
+
+  function verwijderBlok(id) {
+    blokken = blokken.filter(b=>b.id!==id);
+    actiefBlok = null;
+    renderCanvas();
+    toonEigenschappen(null);
+  }
+
+  // ═══════════════════════════════════════════
+  // SLEPEN VAN BLOKKEN OP CANVAS
+  // ═══════════════════════════════════════════
+  let sleepActief = false, sleepBlokId = null, sleepStart = {x:0,y:0}, blokStart = {x:0,y:0};
+
+  function startBlokSleep(e, id) {
+    e.preventDefault();
+    sleepActief = true; sleepBlokId = id;
+    sleepStart = { x: e.clientX, y: e.clientY };
+    const blok = blokken.find(b=>b.id===id);
+    blokStart = { x: blok.x, y: blok.y };
+    selecteerBlok(id);
+  }
+
+  document.addEventListener('mousemove', e => {
+    if (!sleepActief || !sleepBlokId) return;
+    const blok = blokken.find(b=>b.id===sleepBlokId);
+    if (!blok) return;
+    blok.x = Math.max(0, blokStart.x + e.clientX - sleepStart.x);
+    blok.y = Math.max(0, blokStart.y + e.clientY - sleepStart.y);
+    const el = document.getElementById('blok-'+sleepBlokId);
+    if (el) { el.style.left=blok.x+'px'; el.style.top=blok.y+'px'; }
+    // Update eigenschappen live
+    const xEl = document.querySelector('#eigen-velden input[onchange*="\'x\'"]');
+    const yEl = document.querySelector('#eigen-velden input[onchange*="\'y\'"]');
+    if (xEl) xEl.value = Math.round(blok.x);
+    if (yEl) yEl.value = Math.round(blok.y);
+  });
+
+  document.addEventListener('mouseup', () => { sleepActief=false; sleepBlokId=null; });
+
+  // ═══════════════════════════════════════════
+  // RESIZE
+  // ═══════════════════════════════════════════
+  let resizeActief=false, resizeId=null, resizeStart={x:0,y:0}, afmetingStart={b:0,h:0};
+
+  function startResize(e, id) {
+    e.preventDefault(); e.stopPropagation();
+    resizeActief=true; resizeId=id;
+    resizeStart={x:e.clientX,y:e.clientY};
+    const blok=blokken.find(b=>b.id===id);
+    afmetingStart={b:blok.breedte,h:blok.hoogte};
+  }
+
+  document.addEventListener('mousemove', e => {
+    if (!resizeActief||!resizeId) return;
+    const blok=blokken.find(b=>b.id===resizeId);
+    if (!blok) return;
+    blok.breedte=Math.max(80, afmetingStart.b+(e.clientX-resizeStart.x));
+    blok.hoogte =Math.max(32, afmetingStart.h+(e.clientY-resizeStart.y));
+    const el=document.getElementById('blok-'+resizeId);
+    if (el) { el.style.width=blok.breedte+'px'; el.style.height=blok.hoogte+'px'; }
+  });
+
+  document.addEventListener('mouseup', () => { if(resizeActief){ resizeActief=false; resizeId=null; renderCanvas(); toonEigenschappen(actiefBlok); }});
+
+  // ═══════════════════════════════════════════
+  // PROJECTEN OPSLAAN / LADEN
+  // ═══════════════════════════════════════════
+  async function slaanOp() {
+    const naam = document.getElementById('project-naam').value.trim();
+    if (!naam) { alert('Geef het project een naam.'); return; }
+    const payload = {
+      naam,
+      bijgewerkt: new Date().toISOString(),
+      canvasBreedte: 900,
+      blokken: blokken.map(b => ({...b}))
+    };
+    try {
+      await api.slaOp('projecten', naam.toLowerCase().replace(/\s+/g,'_'), payload);
+      projecten[naam] = payload;
+      updateProjectSelect();
+      alert('✓ Project "' + naam + '" opgeslagen.');
+    } catch(e) { alert('Opslaan mislukt: '+e.message); }
+  }
+
+  async function laadAlleProjecten() {
+    try {
+      const data = await api.getPaginaData('projecten');
+      projecten = {};
+      Object.values(data||{}).forEach(p => { if(p.naam) projecten[p.naam]=p; });
+      updateProjectSelect();
+    } catch{}
+  }
+
+  function updateProjectSelect() {
+    const sel = document.getElementById('project-select');
+    const namen = Object.keys(projecten);
+    sel.innerHTML = `<option value="">— Kies project —</option>` + namen.map(n=>`<option value="${n}">${n}</option>`).join('');
+  }
+
+  function laadProject(naam) {
+    if (!naam || !projecten[naam]) return;
+    const p = projecten[naam];
+    document.getElementById('project-naam').value = p.naam;
+    blokken = JSON.parse(JSON.stringify(p.blokken || []));
+    actiefBlok = null;
+    renderCanvas();
+    toonEigenschappen(null);
+  }
+
+  function nieuwProject() {
+    document.getElementById('project-naam').value='Nieuw Project';
+    document.getElementById('project-select').value='';
+    blokken=[]; actiefBlok=null;
+    renderCanvas(); toonEigenschappen(null);
+  }
+
+  async function verwijderProject() {
+    const naam = document.getElementById('project-naam').value.trim();
+    if (!naam||!projecten[naam]) { alert('Geen bestaand project geselecteerd.'); return; }
+    if (!confirm(`Project "${naam}" verwijderen?`)) return;
+    try {
+      await api.verwijderItem('projecten', naam.toLowerCase().replace(/\s+/g,'_'));
+      delete projecten[naam];
+      updateProjectSelect();
+      nieuwProject();
+    } catch(e) { alert(e.message); }
+  }
+
+  // ═══════════════════════════════════════════
+  // JSON EXPORTEREN (voor AI prompt)
+  // ═══════════════════════════════════════════
+  function exporteerJSON() {
+    const naam = document.getElementById('project-naam').value.trim() || 'project';
+    const json = JSON.stringify({
+      naam,
+      bijgewerkt: new Date().toISOString(),
+      canvasBreedte: 900,
+      blokken: blokken
+    }, null, 2);
+    navigator.clipboard.writeText(
+      `Maak een HTML/CSS/JS pagina op basis van dit dashboard layout JSON.\n` +
+      `Gebruik het bestaande dark theme (--bg:#07090f, --card:#121620, --accent:#6366f1, --accent2:#34d399, --text:#e2e8f0).\n` +
+      `Maak de pagina interactief en verbind de componenten met de dashboard API.\n\n` +
+      '```json\n' + json + '\n```'
+    ).then(() => alert('✓ JSON gekopieerd naar klembord — plak het in Claude!')).catch(() => {
+      // Fallback: toon in alert
+      prompt('Kopieer deze JSON:', json);
+    });
+  }
+
+  // ═══════════════════════════════════════════
+  // INIT
+  // ═══════════════════════════════════════════
+  document.addEventListener('DOMContentLoaded', () => {
+    injectSidebar('Projecten');  // alleen sidebar, geen topbar (editor heeft eigen topbar)
+    klokTick(); setInterval(klokTick, 30000);
+    requireAuth();
+    renderCanvas();
+    laadAlleProjecten();
+  });
+  </script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+/* transacties/style.css — alleen pagina-specifieke layout */
+/* Alle kleuren, componenten en tokens komen uit ../shared/theme.css */
+
+/* Filter balk bovenaan de transacties tabel */
+.filter-balk {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+.filter-balk .form-row {
+  margin: 0;
+  min-width: 140px;
+}

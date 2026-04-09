@@ -1,0 +1,105 @@
+/* projecten/style.css — alleen editor-specifieke layout */
+/* Alle kleuren, componenten en tokens komen uit ../shared/theme.css */
+
+/* Editor neemt het volledige scherm over */
+body { overflow: hidden; }
+.editor-wrap { display: flex; margin-left: var(--sidebar); height: 100vh; }
+
+/* ── CANVAS GEBIED (midden) ── */
+.canvas-gebied  { flex: 1; display: flex; flex-direction: column; background: var(--bg); overflow: hidden; }
+.editor-topbar  { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1.25rem; background: var(--surface); border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.editor-topbar h2 { font-size: 0.95rem; font-weight: 700; flex: 1; }
+
+.project-naam-input {
+  background: var(--card2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  padding: 0.4rem 0.75rem;
+  font-size: 0.9rem;
+  font-family: var(--font);
+  width: 220px;
+}
+.project-naam-input:focus { outline: none; border-color: var(--accent); }
+
+.canvas-scroll  { flex: 1; overflow: auto; display: flex; align-items: center; justify-content: center; padding: 2rem; }
+.canvas {
+  background: #1a1f2e;
+  border: 2px dashed var(--border);
+  border-radius: 16px;
+  width: 900px;
+  min-height: 600px;
+  position: relative;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 8px rgba(0,0,0,0.3);
+}
+.canvas.dragover        { border-color: var(--accent); box-shadow: 0 0 0 8px rgba(99,102,241,0.1); }
+.canvas-leeg            { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--muted); pointer-events: none; gap: 0.5rem; }
+.canvas-leeg-icon       { font-size: 2.5rem; opacity: 0.3; }
+
+/* ── CANVAS BLOKKEN ── */
+.canvas-blok {
+  position: absolute;
+  cursor: move;
+  user-select: none;
+  border: 2px solid transparent;
+  border-radius: 10px;
+  transition: border-color 0.1s, box-shadow 0.1s;
+  min-width: 120px;
+  min-height: 48px;
+}
+.canvas-blok:hover  { border-color: rgba(99,102,241,0.5); }
+.canvas-blok.actief { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(99,102,241,0.25); z-index: 10; }
+
+.resize-handle {
+  position: absolute;
+  right: -5px; bottom: -5px;
+  width: 14px; height: 14px;
+  background: var(--accent);
+  border-radius: 3px;
+  cursor: se-resize;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.canvas-blok:hover .resize-handle,
+.canvas-blok.actief .resize-handle { opacity: 1; }
+
+/* ── PANEEL RECHTS ── */
+.paneel-rechts  { width: 220px; background: var(--surface); border-left: 1px solid var(--border); display: flex; flex-direction: column; overflow-y: auto; flex-shrink: 0; }
+.paneel-sectie  { padding: 0.75rem; border-bottom: 1px solid var(--border); }
+.paneel-sectie h3 { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 0.6rem; }
+
+.blok-optie {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.55rem 0.65rem;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  margin-bottom: 0.4rem;
+  cursor: grab;
+  font-size: 0.82rem;
+  user-select: none;
+  transition: border-color 0.15s, color 0.15s, transform 0.1s;
+}
+.blok-optie:hover  { border-color: var(--accent); color: var(--accent); transform: translateX(-2px); }
+.blok-optie:active { cursor: grabbing; }
+.blok-icoon        { font-size: 1rem; width: 20px; text-align: center; }
+
+/* ── EIGENSCHAPPEN PANEEL ── */
+.eigenschappen  { flex: 1; padding: 0.75rem; overflow-y: auto; }
+.eigenschappen h3 { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 0.75rem; }
+
+.eigen-rij      { margin-bottom: 0.65rem; }
+.eigen-rij label { display: block; font-size: 0.7rem; color: var(--muted); margin-bottom: 0.2rem; text-transform: uppercase; letter-spacing: 0.05em; }
+.eigen-rij input,
+.eigen-rij select,
+.eigen-rij textarea { width: 100%; background: var(--card2); border: 1px solid var(--border); border-radius: 7px; color: var(--text); padding: 0.4rem 0.6rem; font-size: 0.82rem; font-family: var(--font); }
+.eigen-rij input:focus,
+.eigen-rij select:focus,
+.eigen-rij textarea:focus { outline: none; border-color: var(--accent); }
+.eigen-rij textarea        { resize: vertical; min-height: 60px; }
+.eigen-rij input[type=color] { padding: 0.2rem; height: 32px; cursor: pointer; }
+
+.geen-selectie  { color: var(--muted); font-size: 0.82rem; text-align: center; padding: 1.5rem 0.5rem; }

@@ -1,0 +1,164 @@
+/* ═══════════════════════════════════════════════════════════
+   theme.css — Één bron van waarheid voor het hele dashboard
+   Laad dit als EERSTE op elke pagina:
+   <link rel="stylesheet" href="../shared/theme.css"/>
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── DESIGN TOKENS ────────────────────────────────────────── */
+:root {
+  /* Achtergronden */
+  --bg:          #07090f;
+  --surface:     #0d1017;
+  --card:        #121620;
+  --card2:       #181d2a;
+
+  /* Accentkleuren */
+  --accent:      #6366f1;   /* paars  — primaire acties */
+  --accent2:     #34d399;   /* groen  — positief / winst */
+  --accent3:     #fbbf24;   /* geel   — watchlist / neutraal */
+  --red:         #f87171;   /* rood   — verlies / gevaar */
+
+  /* Tekst */
+  --text:        #e2e8f0;
+  --muted:       #64748b;
+
+  /* Structuur */
+  --border:      #1e2535;
+  --radius:      14px;
+  --radius-sm:   8px;
+  --radius-pill: 999px;
+
+  /* Layout */
+  --sidebar:     200px;
+
+  /* Typografie */
+  --font:        'Segoe UI', system-ui, sans-serif;
+}
+
+/* ── RESET ────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { height: 100%; }
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  display: flex;
+  min-height: 100vh;
+  line-height: 1.5;
+}
+
+/* ── SCROLLBAR ────────────────────────────────────────────── */
+::-webkit-scrollbar       { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: var(--radius-pill); }
+
+/* ── SIDEBAR ──────────────────────────────────────────────── */
+.sidebar {
+  width: var(--sidebar);
+  min-height: 100vh;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  padding: 1.25rem 0.75rem;
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+  z-index: 100;
+  overflow-y: auto;
+}
+.logo              { display: flex; align-items: center; gap: 0.6rem; padding: 0.25rem 0.5rem; margin-bottom: 1.75rem; }
+.logo-dot          { width: 28px; height: 28px; border-radius: var(--radius-sm); flex-shrink: 0; background: linear-gradient(135deg, var(--accent), var(--accent2)); }
+.logo-naam         { font-weight: 700; font-size: 0.95rem; }
+.nav-section       { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin: 1rem 0.5rem 0.4rem; }
+.nav-btn           { display: flex; align-items: center; gap: 0.6rem; width: 100%; padding: 0.55rem 0.75rem; border-radius: 9px; border: none; background: none; color: var(--muted); font-size: 0.875rem; font-family: var(--font); cursor: pointer; text-align: left; text-decoration: none; transition: background 0.15s, color 0.15s; }
+.nav-btn:hover     { background: var(--card); color: var(--text); }
+.nav-btn.active    { background: rgba(99,102,241,0.15); color: var(--accent); font-weight: 600; }
+.nav-btn .ni       { font-size: 1rem; width: 18px; text-align: center; flex-shrink: 0; }
+.sidebar-bottom    { margin-top: auto; padding: 0.75rem 0.5rem; border-top: 1px solid var(--border); font-size: 0.72rem; color: var(--muted); }
+
+/* ── MAIN LAYOUT ──────────────────────────────────────────── */
+.main              { margin-left: var(--sidebar); flex: 1; padding: 1.75rem 2rem; }
+.topbar            { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.75rem; gap: 1rem; }
+.topbar h1         { font-size: 1.25rem; font-weight: 700; }
+.topbar-right      { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
+.date-pill         { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-pill); padding: 0.3rem 0.9rem; font-size: 0.78rem; color: var(--muted); }
+
+/* ── GRIDS ────────────────────────────────────────────────── */
+.g2                { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-bottom: 1rem; }
+.g3                { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1rem; }
+.g4                { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1rem; }
+
+/* ── CARDS ────────────────────────────────────────────────── */
+.card              { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem 1.4rem; }
+.card-hd           { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+.card-title        { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+.stat-val          { font-size: 1.75rem; font-weight: 700; line-height: 1.1; margin-bottom: 0.2rem; }
+.stat-sub          { font-size: 0.78rem; color: var(--muted); }
+
+/* ── KLEUR HULPKLASSEN ────────────────────────────────────── */
+.green             { color: var(--accent2); }
+.red               { color: var(--red); }
+.yellow            { color: var(--accent3); }
+.purple            { color: var(--accent); }
+.muted             { color: var(--muted); }
+
+/* ── UTILITY ──────────────────────────────────────────────── */
+.mb1               { margin-bottom: 1rem; }
+.mb2               { margin-bottom: 2rem; }
+.mt1               { margin-top: 1rem; }
+
+/* ── TABELLEN ─────────────────────────────────────────────── */
+table              { width: 100%; border-collapse: collapse; }
+th                 { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); text-align: left; padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--border); white-space: nowrap; }
+td                 { padding: 0.75rem; font-size: 0.85rem; border-bottom: 1px solid var(--border); vertical-align: middle; }
+tr:last-child td   { border-bottom: none; }
+tbody tr:hover td  { background: var(--card2); }
+
+/* ── BADGES & LABELS ──────────────────────────────────────── */
+.ticker            { background: rgba(99,102,241,0.12); color: var(--accent); border-radius: 6px; padding: 0.15rem 0.5rem; font-size: 0.78rem; font-weight: 700; white-space: nowrap; }
+.badge             { display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.2rem 0.55rem; border-radius: var(--radius-pill); font-size: 0.72rem; font-weight: 700; }
+.badge-buy         { background: rgba(52,211,153,0.12); color: var(--accent2); }
+.badge-sell        { background: rgba(248,113,113,0.12); color: var(--red); }
+
+/* ── KNOPPEN ──────────────────────────────────────────────── */
+.btn               { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.45rem 1rem; border-radius: var(--radius-sm); border: 1px solid rgba(99,102,241,0.25); background: rgba(99,102,241,0.12); color: var(--accent); font-size: 0.8rem; font-weight: 600; font-family: var(--font); cursor: pointer; text-decoration: none; white-space: nowrap; transition: background 0.15s; }
+.btn:hover         { background: rgba(99,102,241,0.25); }
+.btn-green         { background: rgba(52,211,153,0.12);  color: var(--accent2); border-color: rgba(52,211,153,0.25); }
+.btn-green:hover   { background: rgba(52,211,153,0.25); }
+.btn-yellow        { background: rgba(251,191,36,0.12);  color: var(--accent3); border-color: rgba(251,191,36,0.25); }
+.btn-yellow:hover  { background: rgba(251,191,36,0.25); }
+.btn-red           { background: rgba(248,113,113,0.12); color: var(--red);     border-color: rgba(248,113,113,0.25); }
+.btn-red:hover     { background: rgba(248,113,113,0.25); }
+.btn-ghost         { background: var(--card2); color: var(--muted); border-color: var(--border); }
+.btn-ghost:hover   { background: var(--border); color: var(--text); }
+
+/* ── FORMULIEREN ──────────────────────────────────────────── */
+.form-row                                          { margin-bottom: 1rem; }
+.form-row label                                    { display: block; font-size: 0.75rem; color: var(--muted); margin-bottom: 0.35rem; text-transform: uppercase; letter-spacing: 0.06em; }
+.form-row input,
+.form-row select,
+.form-row textarea                                 { width: 100%; background: var(--card2); border: 1px solid var(--border); border-radius: 9px; color: var(--text); padding: 0.6rem 0.85rem; font-size: 0.88rem; font-family: var(--font); transition: border-color 0.15s; }
+.form-row input:focus,
+.form-row select:focus,
+.form-row textarea:focus                           { outline: none; border-color: var(--accent); }
+.form-row select option                            { background: var(--card); }
+.form-row textarea                                 { resize: vertical; min-height: 80px; }
+.form-grid                                         { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+
+/* ── MODALS ───────────────────────────────────────────────── */
+.modal-overlay     { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 500; align-items: center; justify-content: center; padding: 1rem; }
+.modal-overlay.open{ display: flex; }
+.modal             { background: var(--card); border: 1px solid var(--border); border-radius: 18px; padding: 2rem; width: 480px; max-width: 100%; max-height: 90vh; overflow-y: auto; }
+.modal h2          { font-size: 1.1rem; font-weight: 700; margin-bottom: 1.5rem; }
+.modal-actions     { display: flex; gap: 0.75rem; margin-top: 1.5rem; justify-content: flex-end; }
+.btn-cancel        { background: var(--card2); color: var(--muted); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0.45rem 1rem; font-size: 0.8rem; cursor: pointer; font-family: var(--font); }
+.btn-cancel:hover  { color: var(--text); }
+.totaal-box        { background: var(--card2); border-radius: 10px; padding: 0.75rem 1rem; border: 1px solid var(--border); margin-top: 0.5rem; }
+
+/* ── FEEDBACK STATES ──────────────────────────────────────── */
+.loader            { display: flex; align-items: center; gap: 0.5rem; color: var(--muted); padding: 2rem; font-size: 0.85rem; }
+.spin              { display: inline-block; animation: spin 1s linear infinite; }
+@keyframes spin    { to { transform: rotate(360deg); } }
+.leeg              { text-align: center; padding: 3rem; color: var(--muted); font-size: 0.9rem; }
+.fout-banner       { background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.3); border-radius: 10px; padding: 0.75rem 1rem; font-size: 0.82rem; color: var(--red); margin-bottom: 1rem; }
+.succes-banner     { background: rgba(52,211,153,0.1);  border: 1px solid rgba(52,211,153,0.3);  border-radius: 10px; padding: 0.75rem 1rem; font-size: 0.82rem; color: var(--accent2); margin-bottom: 1rem; }

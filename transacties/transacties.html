@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dashboard — Transacties</title>
+  <link rel="stylesheet" href="../shared/theme.css"/>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+  <nav class="sidebar"></nav>
+  <main class="main">
+    <div class="topbar"></div>
+    <div class="card">
+      <div class="card-hd"><span class="card-title">🔄 Alle Transacties</span><span id="tx-count" style="font-size:.78rem;color:var(--muted)"></span></div>
+      <div class="filter-balk">
+        <div class="form-row"><label>Aandeel</label><select id="f-aandeel"><option value="">Alles</option></select></div>
+        <div class="form-row"><label>Type</label><select id="f-type"><option value="">Alles</option><option value="Buy">Koop</option><option value="Sell">Verkoop</option></select></div>
+        <div class="form-row"><label>Van</label><input type="date" id="f-van"/></div>
+        <div class="form-row"><label>Tot</label><input type="date" id="f-tot"/></div>
+        <button class="btn" onclick="herlaad()" style="align-self:flex-end">↻ Filter</button>
+        <button class="btn btn-ghost" onclick="resetFilter()" style="align-self:flex-end">✕ Reset</button>
+      </div>
+      <table>
+        <thead><tr><th>Datum</th><th>Type</th><th>Ticker</th><th>Naam</th><th>Stuks</th><th>Prijs/stuk</th><th>Fees</th><th>Totaal</th><th>Notitie</th><th></th></tr></thead>
+        <tbody id="tx-tbody"><tr><td colspan="10" class="loader"><span class="spin">⟳</span> Laden…</td></tr></tbody>
+      </table>
+    </div>
+  </main>
+
+  <script src="../shared/api.js"></script>
+  <script src="../shared/app.js"></script>
+  <script>
+    async function herlaad() {
+      const filters = {};
+      const a = document.getElementById('f-aandeel')?.value; if(a) filters.ticker = a;
+      const t = document.getElementById('f-type')?.value;    if(t) filters.type = t;
+      const v = document.getElementById('f-van')?.value;     if(v) filters.van = v;
+      const tot = document.getElementById('f-tot')?.value;   if(tot) filters.tot = tot;
+      try {
+        const txs = await api.getTransacties(filters);
+        document.getElementById('tx-count').textContent = txs.length + ' transacties';
+        document.getElementById('tx-tbody').innerHTML = txs.length ? txs.map(t=>`
+          <tr>
+            <td>${t.datum}</td>
+            <td><span class="badge badge-${t.type==='Buy'?'buy':'sell'}">${t.type==='Buy'?'🟢 Koop':'🔴 Verkoop'}</span></td>
+            <td><span class="ticker">${t.ticker}</span></td>
+            <td style="font-size:.8rem;color:var(--muted)">${t.naam}</td>
+            <td>${fmt(t.aantal,4)}</td>
+            <td>€${fmt(t.prijs)}</td>
+            <td>€${fmt(t.fees)}</td>
+            <td>€${fmt(t.totaal)}</td>
+            <td style="font-size:.8rem;color:var(--muted)">${t.notitie||'–'}</td>
+            <td><button class="btn btn-red" style="padding:.2rem .5rem;font-size:.72rem" onclick="del('${t.id}')">✕</button></td>
+          </tr>`).join('') : '<tr><td colspan="10" class="leeg">Geen transacties gevonden</td></tr>';
+      } catch(e) { console.error(e); }
+    }
+
+    async function laadAandelen() {
+      try {
+        const aandelen = await api.getAandelen();
+        const sel = document.getElementById('f-aandeel');
+        aandelen.forEach(a => { const o=document.createElement('option'); o.value=a.ticker; o.textContent=a.ticker+' — '+a.naam; sel.appendChild(o); });
+      } catch{}
+    }
+
+    async function del(id) {
+      if (!confirm('Transactie verwijderen?')) return;
+      try { await api.verwijderTransactie(id); herlaad(); } catch(e) { alert(e.message); }
+    }
+
+    function resetFilter() {
+      ['f-aandeel','f-type','f-van','f-tot'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+      herlaad();
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      dashboardInit({ actief:'Transacties', titel:'Transacties' });
+      laadAandelen();
+      herlaad();
+    });
+  </script>
+</body>
+</html>

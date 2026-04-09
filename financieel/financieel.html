@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dashboard — Financieel</title>
+  <link rel="stylesheet" href="../shared/theme.css"/>
+  <link rel="stylesheet" href="style.css"/>
+
+</head>
+<body>
+  <nav class="sidebar"></nav>
+  <main class="main">
+    <div class="topbar"></div>
+
+    <!-- STAT RIJ -->
+    <div class="g3 mb2" id="fin-stats"></div>
+
+    <!-- PORTFOLIO TABEL -->
+    <div class="card mb1">
+      <div class="card-hd">
+        <span class="card-title">📊 Alle Posities</span>
+        <div style="display:flex;gap:.5rem;align-items:center">
+          <span id="koers-tijd" style="font-size:.72rem;color:var(--muted)"></span>
+          <button class="btn" onclick="herlaad()">↻ Refresh</button>
+        </div>
+      </div>
+      <table>
+        <thead><tr><th></th><th>Ticker</th><th>Naam</th><th>Stuks</th><th>Gem. kost</th><th>Totale kost</th><th>Koers</th><th>Waarde</th><th>Ongerealiseerd</th><th>Gerealiseerd</th><th>Dag</th></tr></thead>
+        <tbody id="portfolio-tbody"><tr><td colspan="11" class="loader"><span class="spin">⟳</span> Laden…</td></tr></tbody>
+      </table>
+    </div>
+
+    <!-- DETAIL SECTIE (klapt open per aandeel) -->
+    <div id="detail-sectie" style="display:none" class="card mb1">
+      <div class="card-hd">
+        <span class="card-title" id="detail-titel">Aankopen</span>
+        <button class="btn btn-ghost" onclick="sluitDetail()">✕ Sluiten</button>
+      </div>
+      <div class="periode-btns" id="periode-btns">
+        <button class="periode-btn active" onclick="setPeriode('alles')">Alles</button>
+        <button class="periode-btn" onclick="setPeriode('week')">Deze week</button>
+        <button class="periode-btn" onclick="setPeriode('maand')">Deze maand</button>
+        <button class="periode-btn" onclick="setPeriode('jaar')">Dit jaar</button>
+      </div>
+      <div class="g3 mb1" id="detail-stats"></div>
+      <table>
+        <thead><tr><th>Datum</th><th>Type</th><th>Stuks</th><th>Prijs/stuk</th><th>Fees</th><th>Totaal</th><th>Notitie</th><th></th></tr></thead>
+        <tbody id="aankopen-tbody"></tbody>
+      </table>
+    </div>
+
+    <!-- NIEUW AANDEEL -->
+    <div class="card">
+      <div class="card-hd"><span class="card-title">➕ Nieuw Aandeel Toevoegen</span></div>
+      <div class="nieuw-aandeel-rij">
+        <div class="form-row" style="flex:1;margin:0"><label>Ticker (bijv. AAPL, AMS:VUSA)</label><input type="text" id="nieuw-ticker" placeholder="AAPL" style="text-transform:uppercase"/></div>
+        <button class="btn btn-yellow" onclick="zoekTicker()" style="height:38px;align-self:flex-end">🔍 Zoeken</button>
+      </div>
+      <div class="zoek-resultaat" id="zoek-resultaat"></div>
+    </div>
+  </main>
+
+  <script src="../shared/api.js"></script>
+  <script src="../shared/app.js"></script>
+  <script>
+    let _posities = [], _huidigAandeel = null, _periode = 'alles';
+
+    async function herlaad() {
+      try {
+        const data = await api.getPortfolio();
+        _posities = data.posities || [];
+        renderStats(data.totalen);
+        renderTabel(_posities);
+        document.getElementById('koers-tijd').textContent = 'Live · ' + new Date().toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'});
+        if (_huidigAandeel) laadDetail(_huidigAandeel);
+      } catch(e) { console.error(e); }
+    }
+
+    function renderStats(t) {
+      document.getElementById('fin-stats').innerHTML = `
+        <div class="card"><div class="card-hd"><span class="card-title">Totale Waarde</span></div><div class="stat-val">€${fmt(t.portfolioWaarde)}</div><div class="stat-sub">Actieve posities</div></div>
+        <div class="card"><div class="card-hd"><span class="card-title">Ongerealiseerd</span></div><div class="stat-val ${kleur(t.ongrealiseerdGV)}">${fmtBedrag(t.ongrealiseerdGV,true)}</div><div class="stat-sub">${t.totaleKost>0?(t.ongrealiseerdGV/t.totaleKost*100).toFixed(1)+'% rendement':''}</div></div>
+        <div class="card"><div class="card-hd"><span class="card-title">Gerealiseerd</span></div><div class="stat-val ${kleur(t.grealiseerdGV)}">${fmtBedrag(t.grealiseerdGV,true)}</div><div class="stat-sub">Alle afgesloten posities</div></div>`;
+    }
+
+    function renderTabel(posities) {
+      document.getElementById('portfolio-tbody').innerHTML = posities.length ? posities.map(p => `
+        <tr style="cursor:pointer" onclick="toggleDetail('${p.id}','${p.ticker}','${p.naam}')">
+          <td style="color:var(--muted);font-size:.7rem">${p.aantalAandelen>0?'●':''}</td>
+          <td><span class="ticker">${p.ticker}</span></td>
+          <td style="font-size:.82rem">${p.naam}</td>
+          <td>${p.aantalAandelen>0 ? fmt(p.aantalAandelen,4) : '–'}</td>
+          <td>${p.aantalAandelen>0 ? '€'+fmt(p.gemiddeldeKostprijs) : '–'}</td>
+          <td>${p.aantalAandelen>0 ? '€'+fmt(p.totaleKost) : '–'}</td>
+          <td>${p.huidigePrijs!=null ? '€'+fmt(p.huidigePrijs) : '–'}</td>
+          <td>${p.aantalAandelen>0 ? '€'+fmt(p.marktWaarde) : '–'}</td>
+          <td class="${kleur(p.ongrealiseerdGV)}">${p.aantalAandelen>0 ? fmtBedrag(p.ongrealiseerdGV,true)+' ('+fmt(p.ongrealiseerdPct*100,1)+'%)' : '–'}</td>
+          <td class="${kleur(p.grealiseerdGV)}">${p.grealiseerdGV!==0 ? fmtBedrag(p.grealiseerdGV,true) : '–'}</td>
+          <td class="${kleur(p.dagWijziging??0)}">${p.dagWijzigingPct!=null ? (p.dagWijzigingPct>=0?'+':'')+fmt(p.dagWijzigingPct*100,2)+'%' : '–'}</td>
+        </tr>`).join('') : '<tr><td colspan="11" class="leeg">Geen aandelen gevonden</td></tr>';
+    }
+
+    async function toggleDetail(id, ticker, naam) {
+      if (_huidigAandeel === id) { sluitDetail(); return; }
+      _huidigAandeel = id;
+      _periode = 'alles';
+      document.querySelectorAll('.periode-btn').forEach((b,i)=>b.classList.toggle('active',i===0));
+      document.getElementById('detail-titel').textContent = `Aankopen — ${ticker} (${naam})`;
+      document.getElementById('detail-sectie').style.display = 'block';
+      document.getElementById('detail-sectie').scrollIntoView({ behavior:'smooth', block:'nearest' });
+      await laadDetail(id);
+    }
+
+    async function laadDetail(aandeelId) {
+      document.getElementById('aankopen-tbody').innerHTML = '<tr><td colspan="8" class="loader"><span class="spin">⟳</span> Laden…</td></tr>';
+      try {
+        const alle = await api.getTransacties({ aandeel_id: aandeelId });
+        const gefilterd = filterPeriode(alle, _periode);
+        renderDetailStats(gefilterd);
+        renderAankopen(gefilterd);
+      } catch(e) { console.error(e); }
+    }
+
+    function filterPeriode(txs, periode) {
+      const nu = new Date(); const vandaag = nu.toISOString().split('T')[0];
+      if (periode==='week') { const d=new Date(nu); d.setDate(d.getDate()-7); return txs.filter(t=>t.datum>=d.toISOString().split('T')[0]); }
+      if (periode==='maand') { const d=new Date(nu.getFullYear(),nu.getMonth(),1); return txs.filter(t=>t.datum>=d.toISOString().split('T')[0]); }
+      if (periode==='jaar') { return txs.filter(t=>t.datum>=(nu.getFullYear()+'-01-01')); }
+      return txs;
+    }
+
+    function renderDetailStats(txs) {
+      const gekocht = txs.filter(t=>t.type==='Buy').reduce((s,t)=>s+t.aantal*t.prijs+t.fees,0);
+      const verkocht = txs.filter(t=>t.type==='Sell').reduce((s,t)=>s+t.aantal*t.prijs-t.fees,0);
+      const winst = txs.filter(t=>t.type==='Sell').reduce((s,t)=>s+(t.winstverlies||0),0);
+      document.getElementById('detail-stats').innerHTML = `
+        <div class="card"><div class="card-title">Totaal gekocht</div><div class="stat-val">€${fmt(gekocht)}</div><div class="stat-sub">${txs.filter(t=>t.type==='Buy').length} aankopen</div></div>
+        <div class="card"><div class="card-title">Totaal verkocht</div><div class="stat-val">€${fmt(verkocht)}</div><div class="stat-sub">${txs.filter(t=>t.type==='Sell').length} verkopen</div></div>
+        <div class="card"><div class="card-title">Gerealiseerd</div><div class="stat-val ${kleur(winst)}">${fmtBedrag(winst,true)}</div><div class="stat-sub">In geselecteerde periode</div></div>`;
+    }
+
+    function renderAankopen(txs) {
+      document.getElementById('aankopen-tbody').innerHTML = txs.length ? txs.map(t=>`
+        <tr>
+          <td>${t.datum}</td>
+          <td><span class="badge badge-${t.type==='Buy'?'buy':'sell'}">${t.type==='Buy'?'🟢 Koop':'🔴 Verkoop'}</span></td>
+          <td>${fmt(t.aantal,4)}</td>
+          <td>€${fmt(t.prijs)}</td>
+          <td>€${fmt(t.fees)}</td>
+          <td>€${fmt(t.totaal)}</td>
+          <td style="color:var(--muted);font-size:.8rem">${t.notitie||'–'}</td>
+          <td><button class="btn btn-red" style="padding:.2rem .5rem;font-size:.72rem" onclick="verwijderTx('${t.id}')">✕</button></td>
+        </tr>`).join('') : '<tr><td colspan="8" class="leeg">Geen transacties in deze periode</td></tr>';
+    }
+
+    function setPeriode(p) {
+      _periode = p;
+      document.querySelectorAll('.periode-btn').forEach(b=>b.classList.toggle('active',b.textContent.toLowerCase().includes(p==='alles'?'alles':p==='week'?'week':p==='maand'?'maand':'jaar')));
+      if (_huidigAandeel) laadDetail(_huidigAandeel);
+    }
+
+    function sluitDetail() { _huidigAandeel=null; document.getElementById('detail-sectie').style.display='none'; }
+
+    async function verwijderTx(id) {
+      if (!confirm('Transactie verwijderen?')) return;
+      try { await api.verwijderTransactie(id); await herlaad(); } catch(e) { alert(e.message); }
+    }
+
+    // NIEUW AANDEEL ZOEKEN
+    async function zoekTicker() {
+      const ticker = document.getElementById('nieuw-ticker').value.trim().toUpperCase();
+      if (!ticker) return;
+      const res = document.getElementById('zoek-resultaat');
+      res.style.display='block'; res.innerHTML='<span class="spin">⟳</span> Zoeken…';
+      try {
+        const info = await api.zoekAandeel(ticker);
+        if (!info.gevonden) { res.innerHTML=`<span style="color:var(--red)">❌ Ticker "${ticker}" niet gevonden op Yahoo Finance.</span>`; return; }
+        res.innerHTML=`
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem">
+            <div>
+              <strong>${info.ticker}</strong> — ${info.naam}<br>
+              <span style="font-size:.78rem;color:var(--muted)">${info.exchange} · ${info.valuta} · ${info.type} · Huidige prijs: ${info.prijs!=null?'€'+fmt(info.prijs):'onbekend'}</span>
+            </div>
+            <button class="btn btn-green" onclick="voegToe('${info.ticker}')">+ Toevoegen</button>
+          </div>`;
+      } catch(e) { res.innerHTML=`<span style="color:var(--red)">Fout: ${e.message}</span>`; }
+    }
+
+    async function voegToe(ticker) {
+      try {
+        await api.voegAandeelToe(ticker);
+        document.getElementById('nieuw-ticker').value='';
+        document.getElementById('zoek-resultaat').style.display='none';
+        await herlaad();
+        alert(`✓ ${ticker} toegevoegd aan je portfolio.`);
+      } catch(e) { alert(e.message); }
+    }
+
+    document.getElementById('nieuw-ticker')?.addEventListener('keydown', e => { if(e.key==='Enter') zoekTicker(); });
+
+    document.addEventListener('DOMContentLoaded', () => {
+      dashboardInit({ actief:'Financieel', titel:'Financieel' });
+      herlaad();
+      setInterval(herlaad, 2*60*1000);
+    });
+  </script>
+</body>
+</html>

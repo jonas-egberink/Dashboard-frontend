@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dashboard — Home</title>
+  <link rel="stylesheet" href="../shared/theme.css"/>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+  <nav class="sidebar"></nav>
+  <main class="main">
+    <div class="topbar"></div>
+    <div class="g4" id="stat-rij">
+      <div class="card"><div class="card-hd"><span class="card-title">Portfolio Waarde</span><span>💼</span></div><div class="stat-val" id="s-waarde">…</div><div class="stat-sub">Totale marktwaarde</div></div>
+      <div class="card"><div class="card-hd"><span class="card-title">Ongerealiseerd</span><span>📊</span></div><div class="stat-val" id="s-ong">…</div><div class="stat-sub">Open posities</div></div>
+      <div class="card"><div class="card-hd"><span class="card-title">Gerealiseerd</span><span>💰</span></div><div class="stat-val" id="s-gre">…</div><div class="stat-sub">Afgesloten posities</div></div>
+      <div class="card"><div class="card-hd"><span class="card-title">Transacties</span><span>🔄</span></div><div class="stat-val" id="s-tx">…</div><div class="stat-sub">Totaal uitgevoerd</div></div>
+    </div>
+    <div class="g2">
+      <div class="card">
+        <div class="card-hd"><span class="card-title">📈 Actieve Posities</span><span id="bijgewerkt" style="font-size:.72rem;color:var(--muted)"></span></div>
+        <table><thead><tr><th>Ticker</th><th>Stuks</th><th>Gem. kost</th><th>Waarde</th><th>Dag</th><th>Totaal</th></tr></thead>
+        <tbody id="posities-tabel"><tr><td colspan="6" class="loader"><span class="spin">⟳</span> Laden…</td></tr></tbody></table>
+      </div>
+      <div class="card">
+        <div class="card-hd"><span class="card-title">⚡ Laatste Transacties</span><a href="../transacties/transacties.html" class="btn btn-ghost" style="font-size:.72rem">Alles →</a></div>
+        <table><thead><tr><th>Datum</th><th>Type</th><th>Ticker</th><th>Stuks</th><th>Prijs</th></tr></thead>
+        <tbody id="tx-tabel"><tr><td colspan="5" class="loader"><span class="spin">⟳</span> Laden…</td></tr></tbody></table>
+      </div>
+    </div>
+  </main>
+
+  <script src="../shared/api.js"></script>
+  <script src="../shared/app.js"></script>
+  <script>
+    let _portfolio = null;
+
+    async function herlaad() {
+      try {
+        const portfolio = await api.getPortfolio();
+        renderStats(portfolio.totalen);
+        renderPostities(portfolio.posities);
+        const txs = await api.getTransacties();
+        renderTx(txs);
+        document.getElementById('bijgewerkt').textContent = 'Live · ' + new Date().toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'});
+      } catch(e) { console.error(e); }
+    }
+
+    function renderStats(t) {
+      document.getElementById('s-waarde').textContent = '€' + fmt(t.portfolioWaarde);
+      const oe = document.getElementById('s-ong');
+      oe.textContent = fmtBedrag(t.ongrealiseerdGV, true);
+      oe.className = 'stat-val ' + kleur(t.ongrealiseerdGV);
+      const ge = document.getElementById('s-gre');
+      ge.textContent = fmtBedrag(t.grealiseerdGV, true);
+      ge.className = 'stat-val ' + kleur(t.grealiseerdGV);
+      document.getElementById('s-tx').textContent = t.aantalTransacties;
+    }
+
+    function renderPostities(posities) {
+      const actief = posities.filter(p => p.aantalAandelen > 0);
+      document.getElementById('posities-tabel').innerHTML = actief.length ? actief.map(p => `
+        <tr>
+          <td><span class="ticker">${p.ticker}</span></td>
+          <td>${fmt(p.aantalAandelen, 4)}</td>
+          <td>€${fmt(p.gemiddeldeKostprijs)}</td>
+          <td>€${fmt(p.marktWaarde)}</td>
+          <td class="${kleur(p.dagWijziging??0)}">${p.dagWijzigingPct!=null ? (p.dagWijzigingPct>=0?'+':'')+fmt(p.dagWijzigingPct*100,2)+'%' : '–'}</td>
+          <td class="${kleur(p.totaalGV)}">${fmtBedrag(p.totaalGV,true)}</td>
+        </tr>`).join('') : '<tr><td colspan="6" class="leeg">Geen actieve posities</td></tr>';
+    }
+
+    function renderTx(txs) {
+      document.getElementById('tx-tabel').innerHTML = (txs||[]).slice(0,8).map(t => `
+        <tr>
+          <td>${t.datum}</td>
+          <td><span class="badge badge-${t.type==='Buy'?'buy':'sell'}">${t.type==='Buy'?'🟢 Koop':'🔴 Verkoop'}</span></td>
+          <td><span class="ticker">${t.ticker}</span></td>
+          <td>${fmt(t.aantal,4)}</td>
+          <td>€${fmt(t.prijs)}</td>
+        </tr>`).join('') || '<tr><td colspan="5" class="leeg">Geen transacties</td></tr>';
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      dashboardInit({ actief: 'Home', titel: 'Overzicht' });
+      herlaad();
+      setInterval(herlaad, 2 * 60 * 1000); // refresh elke 2 minuten
+    });
+  </script>
+</body>
+</html>

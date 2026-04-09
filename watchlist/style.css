@@ -1,0 +1,40 @@
+/* watchlist/style.css — alleen pagina-specifieke layout */
+/* Alle kleuren, componenten en tokens komen uit ../shared/theme.css */
+
+/* Kaarten grid */
+.watch-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1rem;
+}
+
+/* Individuele watchlist kaart */
+.watch-card {
+  background: var(--card2);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1.1rem 1.2rem;
+  cursor: pointer;
+  transition: border-color 0.2s, transform 0.15s;
+}
+.watch-card:hover {
+  border-color: var(--accent3);
+  transform: translateY(-2px);
+}
+
+.w-header   { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 0.5rem; }
+.w-ticker   { font-size: 0.9rem; font-weight: 800; color: var(--accent3); letter-spacing: 0.04em; }
+.w-prijs    { font-size: 0.85rem; font-weight: 700; }
+.w-naam     { font-size: 0.82rem; font-weight: 600; margin-bottom: 0.3rem; }
+.w-reden    { font-size: 0.75rem; color: var(--muted); line-height: 1.5; margin-bottom: 0.65rem; }
+.w-tags     { display: flex; gap: 0.3rem; flex-wrap: wrap; margin-bottom: 0.5rem; }
+.w-tag      { font-size: 0.65rem; font-weight: 700; padding: 0.15rem 0.45rem; border-radius: var(--radius-pill); background: rgba(251,191,36,0.1); color: var(--accent3); }
+.w-tag.groei{ background: rgba(52,211,153,0.1);  color: var(--accent2); }
+.w-tag.tech,
+.w-tag.ai   { background: rgba(99,102,241,0.1);  color: var(--accent); }
+.w-footer   { display: flex; align-items: center; justify-content: space-between; margin-top: 0.6rem; padding-top: 0.6rem; border-top: 1px solid var(--border); }
+.w-wijziging{ font-size: 0.78rem; font-weight: 600; }
+
+/* Nieuw item toevoegen formulier */
+.nieuw-form { display: flex; gap: 0.5rem; align-items: flex-end; flex-wrap: wrap; }
+.nieuw-form .form-row { margin: 0; flex: 1; min-width: 160px; }

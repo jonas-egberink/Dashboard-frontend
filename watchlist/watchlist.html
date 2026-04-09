@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dashboard — Watchlist</title>
+  <link rel="stylesheet" href="../shared/theme.css"/>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+  <nav class="sidebar"></nav>
+  <main class="main">
+    <div class="topbar"></div>
+
+    <div class="card mb1">
+      <div class="card-hd">
+        <span class="card-title">🔭 Aandelen om te overwegen</span>
+        <div style="display:flex;gap:.5rem">
+          <span id="bijgewerkt" style="font-size:.72rem;color:var(--muted);align-self:center"></span>
+          <button class="btn" onclick="herlaad()">↻ Refresh</button>
+        </div>
+      </div>
+      <div class="watch-grid" id="watch-grid">
+        <div class="loader"><span class="spin">⟳</span> Laden…</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-hd"><span class="card-title">➕ Aandeel toevoegen aan watchlist</span></div>
+      <div class="nieuw-form">
+        <div class="form-row"><label>Ticker</label><input type="text" id="w-ticker" placeholder="AAPL" style="text-transform:uppercase"/></div>
+        <div class="form-row"><label>Reden / notitie</label><input type="text" id="w-reden" placeholder="Waarom interessant?"/></div>
+        <div class="form-row"><label>Tags (komma)</label><input type="text" id="w-tags" placeholder="AI, Groei, Tech"/></div>
+        <button class="btn btn-yellow" onclick="voegToe()" style="align-self:flex-end;height:38px">+ Toevoegen</button>
+      </div>
+      <div id="w-fout" class="fout-banner" style="display:none;margin-top:.75rem"></div>
+    </div>
+  </main>
+
+  <script src="../shared/api.js"></script>
+  <script src="../shared/app.js"></script>
+  <script>
+    let watchItems = {};
+
+    async function herlaad() {
+      try {
+        watchItems = await api.getPaginaData('watchlist') || {};
+
+        const tickers = Object.values(watchItems).map(w => w.ticker).filter(Boolean);
+        const koersen = {};
+        await Promise.allSettled(tickers.map(async t => {
+          try {
+            const info = await api.zoekAandeel(t);
+            if (info?.gevonden) koersen[t] = info;
+          } catch {}
+        }));
+
+        renderGrid(koersen);
+        document.getElementById('bijgewerkt').textContent = 'Live · ' + new Date().toLocaleTimeString('nl-NL', { hour:'2-digit', minute:'2-digit' });
+      } catch(e) { console.error(e); }
+    }
+
+    function renderGrid(koersen) {
+      const grid = document.getElementById('watch-grid');
+      const items = Object.entries(watchItems);
+      if (!items.length) {
+        grid.innerHTML = '<div class="leeg" style="grid-column:1/-1">Geen aandelen op je watchlist. Voeg er een toe hieronder.</div>';
+        return;
+      }
+      grid.innerHTML = items.map(([sleutel, w]) => {
+        const k = koersen[w.ticker] || {};
+        const tags = (w.tags || '').split(',').map(t => t.trim()).filter(Boolean);
+        const dagPct = k.wijzigingPct ?? null;
+        return `
+          <div class="watch-card" onclick="window.open('https://finance.yahoo.com/quote/${w.ticker}','_blank')">
+            <div class="w-header">
+              <div>
+                <div class="w-ticker">${w.ticker}</div>
+                <div class="w-naam">${k.naam || w.naam || w.ticker}</div>
+              </div>
+              <div style="text-align:right">
+                <div class="w-prijs">${k.prijs != null ? '€' + fmt(k.prijs) : '–'}</div>
+                ${dagPct != null ? `<div class="w-wijziging ${kleur(dagPct)}">${dagPct >= 0 ? '+' : ''}${fmt(dagPct * 100, 2)}% vandaag</div>` : ''}
+              </div>
+            </div>
+            <div class="w-reden">${w.reden || ''}</div>
+            <div class="w-tags">${tags.map(t => `<span class="w-tag ${t.toLowerCase()}">${t}</span>`).join('')}</div>
+            <div class="w-footer">
+              <span style="font-size:.72rem;color:var(--muted)">${k.exchange || ''} · ${k.valuta || ''}</span>
+              <button class="btn btn-red" style="padding:.2rem .5rem;font-size:.72rem" onclick="event.stopPropagation();verwijder('${sleutel}')">✕ Verwijder</button>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    async function voegToe() {
+      const fout = document.getElementById('w-fout');
+      fout.style.display = 'none';
+      const ticker = document.getElementById('w-ticker').value.trim().toUpperCase();
+      const reden  = document.getElementById('w-reden').value.trim();
+      const tags   = document.getElementById('w-tags').value.trim();
+      if (!ticker) { fout.textContent = 'Vul een ticker in.'; fout.style.display = 'block'; return; }
+      try {
+        const info = await api.zoekAandeel(ticker);
+        if (!info?.gevonden) { fout.textContent = `Ticker "${ticker}" niet gevonden.`; fout.style.display = 'block'; return; }
+        const sleutel = ticker.toLowerCase().replace(/[^a-z0-9]/g, '_') + '_' + Date.now();
+        const waarde = { ticker, naam: info.naam, reden, tags, exchange: info.exchange, valuta: info.valuta, toegevoegd: new Date().toISOString() };
+        await api.slaOp('watchlist', sleutel, waarde);
+        document.getElementById('w-ticker').value = '';
+        document.getElementById('w-reden').value  = '';
+        document.getElementById('w-tags').value   = '';
+        await herlaad();
+      } catch(e) { fout.textContent = e.message; fout.style.display = 'block'; }
+    }
+
+    async function verwijder(sleutel) {
+      if (!confirm('Verwijderen van watchlist?')) return;
+      try { await api.verwijderItem('watchlist', sleutel); await herlaad(); }
+      catch(e) { alert(e.message); }
+    }
+
+    document.getElementById('w-ticker')?.addEventListener('keydown', e => { if (e.key === 'Enter') voegToe(); });
+
+    document.addEventListener('DOMContentLoaded', () => {
+      dashboardInit({ actief: 'Watchlist', titel: 'Watchlist' });
+      herlaad();
+      setInterval(herlaad, 2 * 60 * 1000);
+    });
+  </script>
+</body>
+</html>
