@@ -3,7 +3,7 @@
    Pas alleen HIER de API_URL aan na Railway deployment.
    ═══════════════════════════════════════════════════════ */
 
-const API_URL = 'https://jouw-backend.railway.app'; // ← vervang na Railway deploy
+const API_URL = 'https://dashboard-backend.up.railway.app';
 
 const api = {
   // ── TOKEN BEHEER ──────────────────────────────────────
