@@ -47,12 +47,13 @@ function injectSidebar(actief) {
       </a>`).join('')}
     <span class="nav-section">Acties</span>
     <button class="nav-btn" onclick="openTxModal()"><span class="ni">➕</span>Transactie</button>
-    <button class="nav-btn" style="margin-top:auto" onclick="api.logout()"><span class="ni">🚪</span>Uitloggen</button>
+    <div style="flex:1"></div>
+    <button class="nav-btn" onclick="api.logout()"><span class="ni">🚪</span>Uitloggen</button>
     <div class="sidebar-bottom"><span id="klok"></span></div>`;
 }
 
 // ── TOPBAR ────────────────────────────────────────────────────
-function injectTopbar(titel, extra = '') {
+function injectTopbar(titel, extra = '', toonTxKnop = true) {
   const t = document.querySelector('.topbar');
   if (!t) return;
   t.innerHTML = `
@@ -60,7 +61,7 @@ function injectTopbar(titel, extra = '') {
     <div class="topbar-right">
       <div class="date-pill" id="datumpill"></div>
       ${extra}
-      <button class="btn btn-green" onclick="openTxModal()">+ Transactie</button>
+      ${toonTxKnop ? '<button class="btn btn-green" onclick="openTxModal()">+ Transactie</button>' : ''}
     </div>`;
 }
 
@@ -161,7 +162,7 @@ async function slaaTxOp() {
 function dashboardInit(config = {}) {
   requireAuth();
   if (config.actief) injectSidebar(config.actief);
-  if (config.titel)  injectTopbar(config.titel, config.extra || '');
+  if (config.titel)  injectTopbar(config.titel, config.extra || '', config.toonTxKnop !== false);
   klokTick();
   setInterval(klokTick, 30000);
 }

@@ -82,7 +82,7 @@
     }
 
     document.addEventListener('DOMContentLoaded', () => {
-      dashboardInit({ actief: 'Home', titel: 'Overzicht' });
+      dashboardInit({ actief: 'Home', titel: 'Overzicht', toonTxKnop: false });
       herlaad();
       setInterval(herlaad, 2 * 60 * 1000); // refresh elke 2 minuten
     });

@@ -22,16 +22,17 @@ body { overflow: hidden; }
 }
 .project-naam-input:focus { outline: none; border-color: var(--accent); }
 
-.canvas-scroll  { flex: 1; overflow: auto; display: flex; align-items: center; justify-content: center; padding: 2rem; }
+.canvas-scroll  { flex: 1; overflow: auto; display: flex; align-items: flex-start; justify-content: center; padding: 1.5rem; }
 .canvas {
   background: #1a1f2e;
   border: 2px dashed var(--border);
   border-radius: 16px;
-  width: 900px;
-  min-height: 600px;
+  width: 100%;
+  max-width: 1200px;
+  min-height: calc(100vh - 120px);
   position: relative;
   flex-shrink: 0;
-  box-shadow: 0 0 0 8px rgba(0,0,0,0.3);
+  box-shadow: 0 0 0 6px rgba(0,0,0,0.3);
 }
 .canvas.dragover        { border-color: var(--accent); box-shadow: 0 0 0 8px rgba(99,102,241,0.1); }
 .canvas-leeg            { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--muted); pointer-events: none; gap: 0.5rem; }
@@ -65,7 +66,7 @@ body { overflow: hidden; }
 .canvas-blok.actief .resize-handle { opacity: 1; }
 
 /* ── PANEEL RECHTS ── */
-.paneel-rechts  { width: 220px; background: var(--surface); border-left: 1px solid var(--border); display: flex; flex-direction: column; overflow-y: auto; flex-shrink: 0; }
+.paneel-rechts  { width: 240px; background: var(--surface); border-left: 1px solid var(--border); display: flex; flex-direction: column; overflow-y: auto; flex-shrink: 0; height: 100vh; position: sticky; top: 0; }
 .paneel-sectie  { padding: 0.75rem; border-bottom: 1px solid var(--border); }
 .paneel-sectie h3 { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 0.6rem; }
 
