@@ -13,7 +13,6 @@ const api = {
   isLoggedIn:  () => !!localStorage.getItem('db_token'),
 
   // ── FETCH WRAPPER ─────────────────────────────────────
-  // Pakt automatisch { success, data } uit — pagina's krijgen altijd direct de data terug.
   async _fetch(pad, opties = {}) {
     const token = this.getToken();
     const resp = await fetch(API_URL + pad, {
@@ -31,7 +30,6 @@ const api = {
     }
     const json = await resp.json().catch(() => ({}));
     if (!resp.ok) throw new Error(json.error || 'Onbekende fout');
-    // Backend geeft { success, data } terug — pak data direct uit
     return json.data !== undefined ? json.data : json;
   },
 
@@ -51,10 +49,10 @@ const api = {
   async getPortfolio() { return this._fetch('/api/portfolio'); },
 
   // ── AANDELEN ──────────────────────────────────────────
-  async getAandelen()          { return this._fetch('/api/aandelen'); },
-  async zoekAandeel(ticker)    { return this._fetch('/api/aandelen/zoek?ticker=' + encodeURIComponent(ticker)); },
-  async voegAandeelToe(ticker) { return this._fetch('/api/aandelen', { method: 'POST', body: JSON.stringify({ ticker }) }); },
-  async verwijderAandeel(id)   { return this._fetch('/api/aandelen/' + id, { method: 'DELETE' }); },
+  async getAandelen()                        { return this._fetch('/api/aandelen'); },
+  async zoekAandeel(ticker)                  { return this._fetch('/api/aandelen/zoek?ticker=' + encodeURIComponent(ticker)); },
+  async voegAandeelToe(ticker, rekening = 'Standaard') { return this._fetch('/api/aandelen', { method: 'POST', body: JSON.stringify({ ticker, rekening }) }); },
+  async verwijderAandeel(id)                 { return this._fetch('/api/aandelen/' + id, { method: 'DELETE' }); },
 
   // ── TRANSACTIES ───────────────────────────────────────
   async getTransacties(f = {}) {
@@ -63,6 +61,20 @@ const api = {
   },
   async voegTransactieToe(data) { return this._fetch('/api/transacties', { method: 'POST', body: JSON.stringify(data) }); },
   async verwijderTransactie(id) { return this._fetch('/api/transacties/' + id, { method: 'DELETE' }); },
+
+  // ── NIEUWS ────────────────────────────────────────────
+  async getNieuws(f = {}) {
+    const p = new URLSearchParams(f).toString();
+    return this._fetch('/api/nieuws' + (p ? '?' + p : ''));
+  },
+  async nieuwsTeller()             { return this._fetch('/api/nieuws/teller'); },
+  async verversNieuws()            { return this._fetch('/api/nieuws/verversen', { method: 'POST' }); },
+  async markeerGelezen(id)         { return this._fetch('/api/nieuws/' + id + '/gelezen', { method: 'PATCH' }); },
+  async markeerAllesGelezen()      { return this._fetch('/api/nieuws/alles-gelezen', { method: 'PATCH' }); },
+
+  // ── ADVIES ────────────────────────────────────────────
+  async getAdvies()       { return this._fetch('/api/advies'); },
+  async genereerAdvies()  { return this._fetch('/api/advies', { method: 'POST' }); },
 
   // ── PAGINA DATA ───────────────────────────────────────
   async getPaginaData(pagina)          { return this._fetch('/api/paginas/' + pagina); },

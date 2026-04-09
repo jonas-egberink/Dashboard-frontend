@@ -107,6 +107,11 @@ body {
 .mb2               { margin-bottom: 2rem; }
 .mt1               { margin-top: 1rem; }
 
+/* ── NIEUWS BELL ────────────────────────────────────────── */
+.nieuws-bell       { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: var(--radius-sm); background: var(--card2); border: 1px solid var(--border); text-decoration: none; font-size: 1rem; cursor: pointer; transition: background 0.15s; }
+.nieuws-bell:hover { background: var(--border); }
+.nieuws-badge      { position: absolute; top: -6px; right: -6px; background: var(--red); color: #fff; font-size: 0.6rem; font-weight: 700; min-width: 16px; height: 16px; border-radius: var(--radius-pill); display: flex; align-items: center; justify-content: center; padding: 0 3px; }
+
 /* ── TABELLEN ─────────────────────────────────────────────── */
 table              { width: 100%; border-collapse: collapse; }
 th                 { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); text-align: left; padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--border); white-space: nowrap; }
@@ -162,3 +167,22 @@ tbody tr:hover td  { background: var(--card2); }
 .leeg              { text-align: center; padding: 3rem; color: var(--muted); font-size: 0.9rem; }
 .fout-banner       { background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.3); border-radius: 10px; padding: 0.75rem 1rem; font-size: 0.82rem; color: var(--red); margin-bottom: 1rem; }
 .succes-banner     { background: rgba(52,211,153,0.1);  border: 1px solid rgba(52,211,153,0.3);  border-radius: 10px; padding: 0.75rem 1rem; font-size: 0.82rem; color: var(--accent2); margin-bottom: 1rem; }
+
+/* ── NIEUWS BELL ─────────────────────────────────────────────── */
+.nieuws-bell       { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--card2); font-size: 1rem; text-decoration: none; cursor: pointer; transition: background 0.15s; }
+.nieuws-bell:hover { background: var(--card); }
+.nieuws-badge      { position: absolute; top: -6px; right: -6px; background: var(--red); color: #fff; border-radius: var(--radius-pill); font-size: 0.6rem; font-weight: 700; min-width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; padding: 0 3px; border: 2px solid var(--bg); }
+
+/* ── NIEUWS ITEMS ────────────────────────────────────────────── */
+.nieuws-item       { display: flex; gap: 0.75rem; align-items: flex-start; padding: 0.85rem 0; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.12s; border-radius: 6px; padding-left: 0.5rem; }
+.nieuws-item:last-child { border-bottom: none; }
+.nieuws-item:hover { background: var(--card2); }
+.nieuws-item.ongelezen { border-left: 3px solid var(--accent); padding-left: calc(0.5rem - 3px); }
+.nieuws-tags       { display: flex; gap: 0.3rem; flex-wrap: wrap; flex-shrink: 0; align-items: flex-start; }
+.nieuws-sentiment  { font-size: 0.65rem; font-weight: 700; padding: 0.15rem 0.45rem; border-radius: var(--radius-pill); white-space: nowrap; }
+.sentiment-positief { background: rgba(52,211,153,0.12); color: var(--accent2); }
+.sentiment-negatief { background: rgba(248,113,113,0.12); color: var(--red); }
+.sentiment-neutraal { background: rgba(99,102,241,0.12);  color: var(--accent); }
+.nieuws-ticker-tag  { font-size: 0.65rem; font-weight: 700; padding: 0.15rem 0.45rem; border-radius: var(--radius-pill); background: rgba(251,191,36,0.12); color: var(--accent3); white-space: nowrap; }
+.nieuws-titel      { font-size: 0.85rem; font-weight: 500; line-height: 1.45; margin-bottom: 0.2rem; color: var(--text); }
+.nieuws-meta       { font-size: 0.72rem; color: var(--muted); }

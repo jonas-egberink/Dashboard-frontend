@@ -11,6 +11,24 @@
   <main class="main">
     <div class="topbar"></div>
 
+    <!-- AI AANBEVELINGEN -->
+    <div class="card mb1" id="advies-sectie">
+      <div class="card-hd">
+        <span class="card-title">🤖 AI Portfolio Analyse</span>
+        <div style="display:flex;gap:.5rem;align-items:center">
+          <span id="advies-tijd" style="font-size:.72rem;color:var(--muted)"></span>
+          <button class="btn btn-yellow" onclick="genereerAdvies()" id="advies-knop">✨ Analyseer</button>
+        </div>
+      </div>
+      <div id="advies-container">
+        <div style="color:var(--muted);font-size:.85rem;padding:.5rem 0">Klik op "Analyseer" voor AI-gedreven portfolio aanbevelingen op basis van jouw posities en marktnieuws.</div>
+      </div>
+      <div style="font-size:.7rem;color:var(--muted);margin-top:.75rem;padding-top:.75rem;border-top:1px solid var(--border)">
+        ⚠️ AI-suggesties op basis van publieke data. Geen officieel financieel advies — raadpleeg een adviseur voor persoonlijke beslissingen.
+      </div>
+    </div>
+
+    <!-- WATCHLIST GRID -->
     <div class="card mb1">
       <div class="card-hd">
         <span class="card-title">🔭 Aandelen om te overwegen</span>
@@ -24,6 +42,7 @@
       </div>
     </div>
 
+    <!-- NIEUW ITEM TOEVOEGEN -->
     <div class="card">
       <div class="card-hd"><span class="card-title">➕ Aandeel toevoegen aan watchlist</span></div>
       <div class="nieuw-form">
@@ -44,7 +63,6 @@
     async function herlaad() {
       try {
         watchItems = await api.getPaginaData('watchlist') || {};
-
         const tickers = Object.values(watchItems).map(w => w.ticker).filter(Boolean);
         const koersen = {};
         await Promise.allSettled(tickers.map(async t => {
@@ -53,30 +71,26 @@
             if (info?.gevonden) koersen[t] = info;
           } catch {}
         }));
-
         renderGrid(koersen);
         document.getElementById('bijgewerkt').textContent = 'Live · ' + new Date().toLocaleTimeString('nl-NL', { hour:'2-digit', minute:'2-digit' });
       } catch(e) { console.error(e); }
     }
 
     function renderGrid(koersen) {
-      const grid = document.getElementById('watch-grid');
+      const grid  = document.getElementById('watch-grid');
       const items = Object.entries(watchItems);
       if (!items.length) {
-        grid.innerHTML = '<div class="leeg" style="grid-column:1/-1">Geen aandelen op je watchlist. Voeg er een toe hieronder.</div>';
+        grid.innerHTML = '<div class="leeg" style="grid-column:1/-1">Geen aandelen op je watchlist.</div>';
         return;
       }
       grid.innerHTML = items.map(([sleutel, w]) => {
-        const k = koersen[w.ticker] || {};
+        const k    = koersen[w.ticker] || {};
         const tags = (w.tags || '').split(',').map(t => t.trim()).filter(Boolean);
         const dagPct = k.wijzigingPct ?? null;
         return `
           <div class="watch-card" onclick="window.open('https://finance.yahoo.com/quote/${w.ticker}','_blank')">
             <div class="w-header">
-              <div>
-                <div class="w-ticker">${w.ticker}</div>
-                <div class="w-naam">${k.naam || w.naam || w.ticker}</div>
-              </div>
+              <div><div class="w-ticker">${w.ticker}</div><div class="w-naam">${k.naam || w.naam || w.ticker}</div></div>
               <div style="text-align:right">
                 <div class="w-prijs">${k.prijs != null ? '€' + fmt(k.prijs) : '–'}</div>
                 ${dagPct != null ? `<div class="w-wijziging ${kleur(dagPct)}">${dagPct >= 0 ? '+' : ''}${fmt(dagPct * 100, 2)}% vandaag</div>` : ''}
@@ -86,14 +100,14 @@
             <div class="w-tags">${tags.map(t => `<span class="w-tag ${t.toLowerCase()}">${t}</span>`).join('')}</div>
             <div class="w-footer">
               <span style="font-size:.72rem;color:var(--muted)">${k.exchange || ''} · ${k.valuta || ''}</span>
-              <button class="btn btn-red" style="padding:.2rem .5rem;font-size:.72rem" onclick="event.stopPropagation();verwijder('${sleutel}')">✕ Verwijder</button>
+              <button class="btn btn-red" style="padding:.2rem .5rem;font-size:.72rem" onclick="event.stopPropagation();verwijder('${sleutel}')">✕</button>
             </div>
           </div>`;
       }).join('');
     }
 
     async function voegToe() {
-      const fout = document.getElementById('w-fout');
+      const fout   = document.getElementById('w-fout');
       fout.style.display = 'none';
       const ticker = document.getElementById('w-ticker').value.trim().toUpperCase();
       const reden  = document.getElementById('w-reden').value.trim();
@@ -103,8 +117,7 @@
         const info = await api.zoekAandeel(ticker);
         if (!info?.gevonden) { fout.textContent = `Ticker "${ticker}" niet gevonden.`; fout.style.display = 'block'; return; }
         const sleutel = ticker.toLowerCase().replace(/[^a-z0-9]/g, '_') + '_' + Date.now();
-        const waarde = { ticker, naam: info.naam, reden, tags, exchange: info.exchange, valuta: info.valuta, toegevoegd: new Date().toISOString() };
-        await api.slaOp('watchlist', sleutel, waarde);
+        await api.slaOp('watchlist', sleutel, { ticker, naam: info.naam, reden, tags, exchange: info.exchange, valuta: info.valuta, toegevoegd: new Date().toISOString() });
         document.getElementById('w-ticker').value = '';
         document.getElementById('w-reden').value  = '';
         document.getElementById('w-tags').value   = '';
@@ -118,11 +131,75 @@
       catch(e) { alert(e.message); }
     }
 
+    // AI ADVIES
+    async function genereerAdvies() {
+      const container = document.getElementById('advies-container');
+      const knop      = document.getElementById('advies-knop');
+      knop.disabled   = true;
+      knop.textContent = '⏳ Analyseren…';
+      container.innerHTML = '<div class="loader"><span class="spin">⟳</span> Claude analyseert je portfolio…</div>';
+
+      try {
+        const advies = await api.genereerAdvies();
+        if (!advies) { container.innerHTML = '<div class="leeg">Geen advies beschikbaar. Voeg eerst aandelen toe.</div>'; return; }
+
+        document.getElementById('advies-tijd').textContent = 'Gegenereerd: ' + new Date(advies.gegenereerd).toLocaleTimeString('nl-NL', { hour:'2-digit', minute:'2-digit' });
+
+        const risicoBadge = { laag: 'badge-buy', medium: 'badge', hoog: 'badge-sell' };
+        const actieKleur  = { kopen: 'btn-green', verkopen: 'btn-red', houden: 'btn-ghost', watchlist: 'btn-yellow' };
+
+        container.innerHTML = `
+          <div class="advies-samenvatting">${advies.samenvatting || ''}</div>
+          ${(advies.risicowaarschuwingen || []).length ? `
+            <div class="advies-waarschuwingen">
+              ${advies.risicowaarschuwingen.map(w => `<div class="waarschuwing">⚠️ ${w}</div>`).join('')}
+            </div>` : ''}
+          <div class="advies-grid">
+            ${(advies.aanbevelingen || []).map(a => `
+              <div class="advies-kaart">
+                <div class="advies-kaart-header">
+                  <div>
+                    <span class="ticker">${a.ticker || '–'}</span>
+                    <span style="font-size:.8rem;color:var(--muted);margin-left:.4rem">${a.naam || ''}</span>
+                  </div>
+                  <div style="display:flex;gap:.35rem;align-items:center">
+                    <span class="badge ${risicoBadge[a.risico] || 'badge'}" style="font-size:.65rem">${a.risico || ''} risico</span>
+                    <span class="btn ${actieKleur[a.type] || 'btn'}" style="padding:.15rem .5rem;font-size:.72rem;pointer-events:none">${a.type?.toUpperCase() || ''}</span>
+                  </div>
+                </div>
+                <div class="advies-actie">${a.actie || ''}</div>
+                <div class="advies-onderbouwing">${a.onderbouwing || ''}</div>
+                <div class="advies-termijn">📅 ${a.termijn || ''}</div>
+              </div>`).join('')}
+          </div>`;
+      } catch(e) {
+        container.innerHTML = `<div class="fout-banner">Analyse mislukt: ${e.message}</div>`;
+      } finally {
+        knop.disabled    = false;
+        knop.textContent = '✨ Analyseer';
+      }
+    }
+
+    // Laad gecached advies bij laden
+    async function laadGeheugendAdvies() {
+      try {
+        const advies = await api.getAdvies();
+        if (advies?.samenvatting) {
+          document.getElementById('advies-tijd').textContent = 'Gegenereerd: ' + new Date(advies.gegenereerd).toLocaleTimeString('nl-NL', { hour:'2-digit', minute:'2-digit' });
+          // Toon verkorte versie
+          document.getElementById('advies-container').innerHTML = `
+            <div class="advies-samenvatting">${advies.samenvatting}</div>
+            <div style="margin-top:.5rem"><button class="btn btn-ghost" onclick="genereerAdvies()">Toon volledige analyse</button></div>`;
+        }
+      } catch {}
+    }
+
     document.getElementById('w-ticker')?.addEventListener('keydown', e => { if (e.key === 'Enter') voegToe(); });
 
     document.addEventListener('DOMContentLoaded', () => {
       dashboardInit({ actief: 'Watchlist', titel: 'Watchlist' });
       herlaad();
+      laadGeheugendAdvies();
       setInterval(herlaad, 2 * 60 * 1000);
     });
   </script>

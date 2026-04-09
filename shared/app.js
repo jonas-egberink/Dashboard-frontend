@@ -1,7 +1,4 @@
 // shared/app.js — Gedeelde logica voor het hele dashboard
-// Laad op elke pagina NA shared/api.js:
-//   <script src="../shared/api.js"></script>
-//   <script src="../shared/app.js"></script>
 
 // ── OPMAAK HELPERS ────────────────────────────────────────────
 const fmt       = (v, d = 2) => Number(v).toLocaleString('nl-NL', { minimumFractionDigits: d, maximumFractionDigits: d });
@@ -11,9 +8,7 @@ const fmtBedrag = (v, plus = false) => (plus ? teken(v) : v < 0 ? '−' : '') + 
 
 // ── AUTH ──────────────────────────────────────────────────────
 function requireAuth() {
-  if (!api.isLoggedIn()) {
-    window.location.href = '../login/login.html';
-  }
+  if (!api.isLoggedIn()) window.location.href = '../login/login.html';
 }
 
 // ── KLOK & DATUM ──────────────────────────────────────────────
@@ -27,6 +22,18 @@ function klokTick() {
   );
 }
 
+// ── NIEUWS TELLER ─────────────────────────────────────────────
+async function laadNieuwsTeller() {
+  try {
+    const data = await api.getNewsTeller();
+    const badge = document.getElementById('nieuws-badge');
+    if (!badge) return;
+    const n = data?.ongelezen || 0;
+    badge.textContent = n > 99 ? '99+' : n;
+    badge.style.display = n > 0 ? 'flex' : 'none';
+  } catch { /* stil falen */ }
+}
+
 // ── SIDEBAR ───────────────────────────────────────────────────
 function injectSidebar(actief) {
   const nav = document.querySelector('.sidebar');
@@ -35,6 +42,7 @@ function injectSidebar(actief) {
     { href: '../home/index.html',              icon: '🏠', label: 'Home' },
     { href: '../financieel/financieel.html',   icon: '📈', label: 'Financieel' },
     { href: '../transacties/transacties.html', icon: '🔄', label: 'Transacties' },
+    { href: '../nieuws/nieuws.html',           icon: '📰', label: 'Nieuws' },
     { href: '../watchlist/watchlist.html',     icon: '🔭', label: 'Watchlist' },
     { href: '../projecten/editor.html',        icon: '🗂️', label: 'Projecten' },
   ];
@@ -61,8 +69,12 @@ function injectTopbar(titel, extra = '', toonTxKnop = true) {
     <div class="topbar-right">
       <div class="date-pill" id="datumpill"></div>
       ${extra}
+      <a href="../nieuws/nieuws.html" class="nieuws-bell" title="Nieuws">
+        📰<span class="nieuws-badge" id="nieuws-badge" style="display:none">0</span>
+      </a>
       ${toonTxKnop ? '<button class="btn btn-green" onclick="openTxModal()">+ Transactie</button>' : ''}
     </div>`;
+  laadNieuwsTeller();
 }
 
 // ── TRANSACTIE MODAL ──────────────────────────────────────────
@@ -80,10 +92,7 @@ async function openTxModal() {
         <div class="form-grid">
           <div class="form-row">
             <label>Type</label>
-            <select id="tx-type">
-              <option value="Buy">🟢 Koop</option>
-              <option value="Sell">🔴 Verkoop</option>
-            </select>
+            <select id="tx-type"><option value="Buy">🟢 Koop</option><option value="Sell">🔴 Verkoop</option></select>
           </div>
           <div class="form-row"><label>Datum</label><input type="date" id="tx-datum"/></div>
         </div>
@@ -126,9 +135,7 @@ async function openTxModal() {
   );
 }
 
-function closeTxModal() {
-  document.getElementById('tx-modal')?.remove();
-}
+function closeTxModal() { document.getElementById('tx-modal')?.remove(); }
 
 async function slaaTxOp() {
   const fout = document.getElementById('tx-fout');
@@ -157,8 +164,7 @@ async function slaaTxOp() {
   }
 }
 
-// ── INIT ─ roep aan bovenaan elke pagina ─────────────────────
-// config = { actief: 'Home', titel: 'Overzicht', extra: '' }
+// ── INIT ──────────────────────────────────────────────────────
 function dashboardInit(config = {}) {
   requireAuth();
   if (config.actief) injectSidebar(config.actief);
