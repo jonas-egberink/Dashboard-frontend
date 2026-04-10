@@ -160,7 +160,7 @@
                     <td>${p.aantalAandelen>0 ? '€'+fmt(p.marktWaarde) : '–'}</td>
                     <td class="${kleur(p.ongrealiseerdGV)}">${p.aantalAandelen>0 ? fmtBedrag(p.ongrealiseerdGV,true)+' ('+fmt(p.ongrealiseerdPct*100,1)+'%)' : '–'}</td>
                     <td class="${kleur(p.grealiseerdGV)}">${p.grealiseerdGV!==0 ? fmtBedrag(p.grealiseerdGV,true) : '–'}</td>
-                    <td class="${kleur(p.dagWijziging??0)}">${p.dagWijzigingPct!=null ? (p.dagWijzigingPct>=0?'+':'')+fmt(p.dagWijzigingPct*100,2)+'%' : '–'}</td>
+                    <td class="${kleur(p.dagWijziging??0)}">${p.dagWijzigingPct!=null ? (p.dagWijzigingPct>=0?'+':'')+fmt(p.dagWijzigingPct,2)+'%' : '–'}</td>
                   </tr>`).join('')}
               </tbody>
             </table>
@@ -199,6 +199,7 @@
     async function laadDetail(aandeelId) {
       document.getElementById('aankopen-tbody').innerHTML = '<tr><td colspan="8" class="loader"><span class="spin">⟳</span> Laden…</td></tr>';
       try {
+        // Gebruik aandeel_id filter direct
         const alle = await api.getTransacties({ aandeel_id: aandeelId });
         const gefilterd = filterPeriode(alle, _periode);
         renderDetailStats(gefilterd);
@@ -233,7 +234,10 @@
           <td>€${fmt(t.fees)}</td>
           <td>€${fmt(t.totaal)}</td>
           <td style="color:var(--muted);font-size:.8rem">${t.notitie||'–'}</td>
-          <td><button class="btn btn-red" style="padding:.2rem .5rem;font-size:.72rem" onclick="verwijderTx('${t.id}')">✕</button></td>
+          <td style="display:flex;gap:.3rem">
+            <button class="btn btn-ghost" style="padding:.2rem .5rem;font-size:.72rem" onclick="openBewerkModal('${t.id}','${t.aandeel_id}','${t.type}','${t.datum}',${t.aantal},${t.prijs},${t.fees},'${t.notitie||''}')">✏️</button>
+            <button class="btn btn-red" style="padding:.2rem .5rem;font-size:.72rem" onclick="verwijderTx('${t.id}')">✕</button>
+          </td>
         </tr>`).join('') : '<tr><td colspan="8" class="leeg">Geen transacties in deze periode</td></tr>';
     }
 
@@ -248,6 +252,57 @@
     async function verwijderTx(id) {
       if (!confirm('Transactie verwijderen?')) return;
       try { await api.verwijderTransactie(id); await herlaad(); } catch(e) { alert(e.message); }
+    }
+
+    function openBewerkModal(id, aandeelId, type, datum, aantal, prijs, fees, notitie) {
+      document.getElementById('bewerk-modal')?.remove();
+      document.body.insertAdjacentHTML('beforeend', `
+        <div class="modal-overlay open" id="bewerk-modal">
+          <div class="modal" onclick="event.stopPropagation()">
+            <h2>✏️ Transactie aanpassen</h2>
+            <div class="form-grid">
+              <div class="form-row"><label>Type</label>
+                <select id="bw-type">
+                  <option value="Buy" ${type==='Buy'?'selected':''}>🟢 Koop</option>
+                  <option value="Sell" ${type==='Sell'?'selected':''}>🔴 Verkoop</option>
+                </select>
+              </div>
+              <div class="form-row"><label>Datum</label><input type="date" id="bw-datum" value="${datum}"/></div>
+            </div>
+            <div class="form-grid">
+              <div class="form-row"><label>Aantal stuks</label><input type="number" id="bw-aantal" value="${aantal}" min="0.000001" step="any"/></div>
+              <div class="form-row"><label>Prijs per stuk</label><input type="number" id="bw-prijs" value="${prijs}" min="0" step="any"/></div>
+            </div>
+            <div class="form-row"><label>Fees</label><input type="number" id="bw-fees" value="${fees}" min="0" step="0.01"/></div>
+            <div class="form-row"><label>Notitie</label><input type="text" id="bw-notitie" value="${notitie}"/></div>
+            <div id="bw-fout" class="fout-banner" style="display:none;margin-top:.75rem"></div>
+            <div class="modal-actions">
+              <button class="btn-cancel" onclick="document.getElementById('bewerk-modal').remove()">Annuleren</button>
+              <button class="btn btn-green" onclick="slaaBewerkingOp('${id}')">✓ Opslaan</button>
+            </div>
+          </div>
+        </div>`);
+      document.getElementById('bewerk-modal').addEventListener('click', e => {
+        if (e.target.id === 'bewerk-modal') document.getElementById('bewerk-modal').remove();
+      });
+    }
+
+    async function slaaBewerkingOp(id) {
+      const fout = document.getElementById('bw-fout');
+      fout.style.display = 'none';
+      const payload = {
+        type:    document.getElementById('bw-type').value,
+        datum:   document.getElementById('bw-datum').value,
+        aantal:  parseFloat(document.getElementById('bw-aantal').value),
+        prijs:   parseFloat(document.getElementById('bw-prijs').value),
+        fees:    parseFloat(document.getElementById('bw-fees').value) || 0,
+        notitie: document.getElementById('bw-notitie').value || null,
+      };
+      try {
+        await api.pasTransactieAan(id, payload);
+        document.getElementById('bewerk-modal').remove();
+        await herlaad();
+      } catch(e) { fout.textContent = e.message; fout.style.display = 'block'; }
     }
 
     // NIEUW AANDEEL

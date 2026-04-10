@@ -65,7 +65,7 @@
           <td>${fmt(p.aantalAandelen, 4)}</td>
           <td>€${fmt(p.gemiddeldeKostprijs)}</td>
           <td>€${fmt(p.marktWaarde)}</td>
-          <td class="${kleur(p.dagWijziging??0)}">${p.dagWijzigingPct!=null ? (p.dagWijzigingPct>=0?'+':'')+fmt(p.dagWijzigingPct*100,2)+'%' : '–'}</td>
+          <td class="${kleur(p.dagWijziging??0)}">${p.dagWijzigingPct!=null ? (p.dagWijzigingPct>=0?'+':'')+fmt(p.dagWijzigingPct,2)+'%' : '–'}</td>
           <td class="${kleur(p.totaalGV)}">${fmtBedrag(p.totaalGV,true)}</td>
         </tr>`).join('') : '<tr><td colspan="6" class="leeg">Geen actieve posities</td></tr>';
     }
