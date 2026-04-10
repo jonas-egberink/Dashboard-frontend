@@ -81,6 +81,37 @@
       </div>
       <div class="zoek-resultaat" id="zoek-resultaat"></div>
     </div>
+
+    <!-- VALUTA AANPASSEN VOOR BESTAANDE TRANSACTIES -->
+    <div class="card" style="margin-top:1rem">
+      <div class="card-hd"><span class="card-title">💱 Valuta bestaande transacties aanpassen</span></div>
+      <div style="font-size:.82rem;color:var(--muted);margin-bottom:.75rem">
+        Als je bestaande transacties in een verkeerde valuta hebt ingevoerd, kun je ze hier in bulk aanpassen.
+      </div>
+      <div style="display:flex;gap:.5rem;align-items:flex-end;flex-wrap:wrap">
+        <div class="form-row" style="margin:0;flex:1;min-width:160px">
+          <label>Aandeel</label>
+          <select id="vw-aandeel">
+            <option value="">— Kies aandeel —</option>
+          </select>
+        </div>
+        <div class="form-row" style="margin:0;width:130px">
+          <label>Nieuwe valuta</label>
+          <select id="vw-valuta">
+            <option value="EUR">€ EUR</option>
+            <option value="USD">$ USD</option>
+            <option value="GBP">£ GBP</option>
+            <option value="GBp">p GBp</option>
+            <option value="CHF">CHF</option>
+            <option value="JPY">¥ JPY</option>
+            <option value="CAD">C$ CAD</option>
+            <option value="AUD">A$ AUD</option>
+          </select>
+        </div>
+        <button class="btn btn-green" onclick="pasValutaAan()" style="align-self:flex-end;height:38px">✓ Aanpassen</button>
+      </div>
+      <div id="vw-fout" class="fout-banner" style="display:none;margin-top:.75rem"></div>
+    </div>
   </main>
 
   <script src="../shared/api.js"></script>
@@ -182,6 +213,13 @@
       const namen = [...new Set(_rekeningen.map(r => r.naam))];
       const list  = document.getElementById('rekening-lijst');
       if (list) list.innerHTML = namen.map(n => `<option value="${n}">`).join('');
+
+      // Vul ook de valuta-aanpassen dropdown
+      const vwSel = document.getElementById('vw-aandeel');
+      if (vwSel) {
+        vwSel.innerHTML = '<option value="">— Kies aandeel —</option>' +
+          _posities.map(p => `<option value="${p.id}">${p.ticker} — ${p.naam}</option>`).join('');
+      }
     }
 
     // DETAIL
@@ -248,6 +286,21 @@
     }
 
     function sluitDetail() { _huidigAandeel=null; document.getElementById('detail-sectie').style.display='none'; }
+
+    async function pasValutaAan() {
+      const fout      = document.getElementById('vw-fout');
+      const aandeelId = document.getElementById('vw-aandeel').value;
+      const valuta    = document.getElementById('vw-valuta').value;
+      fout.style.display = 'none';
+      if (!aandeelId) { fout.textContent = 'Kies een aandeel.'; fout.style.display = 'block'; return; }
+      if (!confirm(`Alle transacties van dit aandeel aanpassen naar ${valuta}?`)) return;
+      try {
+        await api.pasValutaAanBulk(aandeelId, valuta);
+        await herlaad();
+        fout.style.display = 'none';
+        alert(`✓ Valuta bijgewerkt naar ${valuta}`);
+      } catch(e) { fout.textContent = e.message; fout.style.display = 'block'; }
+    }
 
     async function verwijderTx(id) {
       if (!confirm('Transactie verwijderen?')) return;

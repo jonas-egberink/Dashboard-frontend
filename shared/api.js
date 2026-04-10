@@ -59,9 +59,10 @@ const api = {
     const p = new URLSearchParams(f).toString();
     return this._fetch('/api/transacties' + (p ? '?' + p : ''));
   },
-  async voegTransactieToe(data)  { return this._fetch('/api/transacties', { method: 'POST', body: JSON.stringify(data) }); },
-  async pasTransactieAan(id, data) { return this._fetch('/api/transacties/' + id, { method: 'PATCH', body: JSON.stringify(data) }); },
-  async verwijderTransactie(id)   { return this._fetch('/api/transacties/' + id, { method: 'DELETE' }); },
+  async voegTransactieToe(data)           { return this._fetch('/api/transacties', { method: 'POST', body: JSON.stringify(data) }); },
+  async pasTransactieAan(id, data)         { return this._fetch('/api/transacties/' + id, { method: 'PATCH', body: JSON.stringify(data) }); },
+  async pasValutaAanBulk(aandeel_id, valuta) { return this._fetch('/api/transacties/bulk-valuta', { method: 'PATCH', body: JSON.stringify({ aandeel_id, valuta }) }); },
+  async verwijderTransactie(id)            { return this._fetch('/api/transacties/' + id, { method: 'DELETE' }); },
 
   // ── NIEUWS ────────────────────────────────────────────
   async getNieuws(f = {}) {
