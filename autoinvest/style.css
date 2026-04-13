@@ -1,0 +1,264 @@
+.intro-card p {
+  color: var(--text);
+  font-size: .9rem;
+}
+
+.intro-card code {
+  background: var(--card2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: .1rem .35rem;
+}
+
+.groep-card {
+  overflow: hidden;
+}
+
+.groep-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.groep-title-row {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  flex-wrap: wrap;
+}
+
+.groep-title-row h2 {
+  font-size: 1.1rem;
+}
+
+.groep-actions {
+  display: flex;
+  gap: .5rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  border-radius: var(--radius-pill);
+  padding: .28rem .7rem;
+  font-size: .72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  background: rgba(100,116,139,.12);
+  color: var(--muted);
+  border: 1px solid rgba(100,116,139,.2);
+}
+
+.status-pill.green {
+  background: rgba(52,211,153,.12);
+  color: var(--accent2);
+  border-color: rgba(52,211,153,.24);
+}
+
+.status-pill.yellow {
+  background: rgba(251,191,36,.12);
+  color: var(--accent3);
+  border-color: rgba(251,191,36,.24);
+}
+
+.status-pill.red {
+  background: rgba(248,113,113,.12);
+  color: var(--red);
+  border-color: rgba(248,113,113,.24);
+}
+
+.holdings-strip {
+  display: flex;
+  gap: .65rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.holding-chip {
+  min-width: 170px;
+  background: var(--card2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: .7rem .85rem;
+  display: grid;
+  gap: .15rem;
+}
+
+.holding-chip strong {
+  color: var(--text);
+  font-size: .85rem;
+}
+
+.holding-chip span,
+.holding-chip small {
+  color: var(--muted);
+  font-size: .76rem;
+}
+
+.plan-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: .75rem;
+  margin-bottom: 1rem;
+}
+
+.meta-pill {
+  background: var(--card2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: .8rem .95rem;
+  display: grid;
+  gap: .18rem;
+}
+
+.meta-pill span {
+  color: var(--muted);
+  font-size: .68rem;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+
+.meta-pill strong {
+  font-size: .9rem;
+}
+
+.allocatie-lijst {
+  display: grid;
+  gap: .75rem;
+}
+
+.allocatie-rij,
+.preview-row,
+.alloc-input-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+}
+
+.allocatie-balk {
+  width: 100%;
+  height: 9px;
+  border-radius: 999px;
+  background: var(--card2);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  margin: .35rem 0;
+}
+
+.allocatie-balk span {
+  display: block;
+  height: 100%;
+  width: var(--alloc-width, 0%);
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+}
+
+.allocatie-kop {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: .75rem;
+}
+
+.allocatie-sub,
+.history-detail span {
+  color: var(--muted);
+  font-size: .76rem;
+}
+
+.editor-card {
+  border-top: 1px solid var(--border);
+  padding-top: 1rem;
+}
+
+.toggle-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.toggle-label {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  font-size: .85rem;
+}
+
+.alloc-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: .35rem;
+  min-width: 140px;
+}
+
+.alloc-input-wrap input {
+  width: 100%;
+  background: var(--card2);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  color: var(--text);
+  padding: .55rem .75rem;
+  font-size: .88rem;
+}
+
+.editor-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: .75rem;
+  margin-top: 1rem;
+}
+
+.leeg-state {
+  background: var(--card2);
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  padding: 1rem 1.1rem;
+  color: var(--muted);
+}
+
+.history-detail {
+  display: grid;
+  gap: .1rem;
+  margin-bottom: .45rem;
+}
+
+.history-detail:last-child {
+  margin-bottom: 0;
+}
+
+@media (max-width: 1100px) {
+  .plan-meta-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 820px) {
+  .groep-header,
+  .allocatie-rij,
+  .preview-row,
+  .alloc-input-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .groep-actions,
+  .editor-actions {
+    justify-content: flex-start;
+  }
+
+  .plan-meta-grid,
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+

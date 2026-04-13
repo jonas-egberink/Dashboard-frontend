@@ -44,6 +44,7 @@ function injectSidebar(actief) {
   const links = [
     { href: '../home/index.html',              icon: '🏠', label: 'Home' },
     { href: '../financieel/financieel.html',   icon: '📈', label: 'Financieel' },
+    { href: '../autoinvest/autoinvest.html',   icon: '🤖', label: 'Auto-Invest' },
     { href: '../transacties/transacties.html', icon: '🔄', label: 'Transacties' },
     { href: '../nieuws/nieuws.html',           icon: '📰', label: 'Nieuws' },
     { href: '../watchlist/watchlist.html',     icon: '🔭', label: 'Watchlist' },

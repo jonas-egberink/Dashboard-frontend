@@ -3,7 +3,7 @@
    Pas alleen HIER de API_URL aan na Railway deployment.
    ═══════════════════════════════════════════════════════ */
 
-const API_URL = 'https://dashboard-backend.up.railway.app';
+const API_URL = window.DASHBOARD_API_URL || 'https://dashboard-backend.up.railway.app';
 
 const api = {
   // ── TOKEN BEHEER ──────────────────────────────────────
@@ -77,6 +77,13 @@ const api = {
   // ── ADVIES ────────────────────────────────────────────
   async getAdvies()       { return this._fetch('/api/advies'); },
   async genereerAdvies()  { return this._fetch('/api/advies', { method: 'POST' }); },
+
+  // ── AUTO-INVEST ───────────────────────────────────────
+  async getAutoInvestOverzicht()             { return this._fetch('/api/autoinvest'); },
+  async getAutoInvestPlan(groupId)           { return this._fetch('/api/autoinvest/' + encodeURIComponent(groupId)); },
+  async saveAutoInvestPlan(groupId, data)    { return this._fetch('/api/autoinvest/' + encodeURIComponent(groupId), { method: 'POST', body: JSON.stringify(data) }); },
+  async deleteAutoInvestPlan(groupId)        { return this._fetch('/api/autoinvest/' + encodeURIComponent(groupId), { method: 'DELETE' }); },
+  async getAutoInvestHistory(groupId)        { return this._fetch('/api/autoinvest/' + encodeURIComponent(groupId) + '/history'); },
 
   // ── PAGINA DATA ───────────────────────────────────────
   async getPaginaData(pagina)          { return this._fetch('/api/paginas/' + pagina); },
