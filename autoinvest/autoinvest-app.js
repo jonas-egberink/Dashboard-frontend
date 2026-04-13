@@ -73,18 +73,15 @@ function statusLabel(plan) {
 }
 
 function berekenVolgendeDatumVoorDraft(draft) {
-  if (!draft?.startdatum || !draft?.uitvoerDag) return null;
-  const start = new Date(draft.startdatum + 'T12:00:00');
+  if (!draft?.uitvoerDag) return null;
   const vandaag = new Date();
-  const grens = start > vandaag ? start : vandaag;
-  let jaar = grens.getFullYear();
-  let maand = grens.getMonth();
+  let jaar = vandaag.getFullYear();
+  let maand = vandaag.getMonth();
 
   for (let i = 0; i < 24; i++) {
-    const laatsteDag = new Date(jaar, maand + 1, 0).getDate();
-    const kandidaat = new Date(jaar, maand, Math.min(Number(draft.uitvoerDag), laatsteDag), 12, 0, 0);
+    const kandidaat = new Date(jaar, maand, Math.min(Number(draft.uitvoerDag), 28), 12, 0, 0);
     while (kandidaat.getDay() === 0 || kandidaat.getDay() === 6) kandidaat.setDate(kandidaat.getDate() + 1);
-    if (kandidaat >= start && kandidaat >= vandaag) {
+    if (kandidaat >= vandaag) {
       return kandidaat.toISOString().slice(0, 10);
     }
     maand += 1;
@@ -96,32 +93,15 @@ function berekenVolgendeDatumVoorDraft(draft) {
   return null;
 }
 
-function standaardAllocaties(holdings) {
-  if (!holdings.length) return [];
-  const basis = 100 / holdings.length;
-  let restant = 100;
-  return holdings.map((holding, index) => {
-    const percentage = index === holdings.length - 1 ? rond(restant, 4) : rond(basis, 4);
-    restant = rond(restant - percentage, 4);
-    return { aandeel_id: holding.id, percentage };
-  });
-}
-
 function maakDraft(groep) {
   const plan = groep.plan;
   if (plan) {
-    const allocatieMap = new Map(plan.allocaties.map(item => [item.aandeel_id, Number(item.percentage)]));
     return {
       maandBedrag: plan.maandbedrag,
       maandBedragValuta: plan.maandbedragValuta || 'EUR',
       uitvoerDag: plan.uitvoerDag,
-      startdatum: plan.startdatum,
-      einddatum: plan.einddatum || '',
       actief: !!plan.actief,
-      allocaties: groep.holdings.map(holding => ({
-        aandeel_id: holding.id,
-        percentage: allocatieMap.get(holding.id) ?? 0,
-      })),
+      allocaties: plan.allocaties.map(item => ({ aandeel_id: item.aandeel_id, percentage: Number(item.percentage) })),
     };
   }
 
@@ -129,10 +109,8 @@ function maakDraft(groep) {
     maandBedrag: '',
     maandBedragValuta: 'EUR',
     uitvoerDag: 5,
-    startdatum: new Date().toISOString().slice(0, 10),
-    einddatum: '',
     actief: true,
-    allocaties: standaardAllocaties(groep.holdings),
+    allocaties: [],
   };
 }
 
@@ -185,11 +163,15 @@ function buildPreview(groep, draft) {
 }
 
 function normalizedDraftAllocaties(groep, draft) {
-  const bestaande = new Map((draft.allocaties || []).map(item => [item.aandeel_id, Number(item.percentage || 0)]));
-  return (groep.holdings || []).map(holding => ({
-    aandeel_id: holding.id,
-    percentage: bestaande.get(holding.id) ?? 0,
-  }));
+  const geldigeIds = new Set((groep.holdings || []).map(h => h.id));
+  return (draft.allocaties || [])
+    .filter(item => geldigeIds.has(item.aandeel_id))
+    .map(item => ({ aandeel_id: item.aandeel_id, percentage: Number(item.percentage || 0) }));
+}
+
+function beschikbareHoldings(groep, draft) {
+  const gekozen = new Set((draft.allocaties || []).map(item => item.aandeel_id));
+  return (groep.holdings || []).filter(holding => !gekozen.has(holding.id));
 }
 
 async function herlaad() {
@@ -256,7 +238,7 @@ function renderPlanSamenvatting(groep) {
       <div class="meta-pill"><span>Invoerbedrag</span><strong>${groep.plan.maandbedragValuta} ${fmt(groep.plan.maandbedrag)}</strong></div>
       <div class="meta-pill"><span>Status</span><strong class="${statusClass(groep.plan)}">${statusLabel(groep.plan)}</strong></div>
       <div class="meta-pill"><span>Volgende run</span><strong>${groep.plan.volgendeUitvoering ? fmtDatum(groep.plan.volgendeUitvoering) : '–'}</strong></div>
-      <div class="meta-pill"><span>Periode</span><strong>${fmtDatum(groep.plan.startdatum)}${groep.plan.einddatum ? ' → ' + fmtDatum(groep.plan.einddatum) : ' → doorlopend'}</strong></div>
+      <div class="meta-pill"><span>Dag van de maand</span><strong>${groep.plan.uitvoerDag}</strong></div>
     </div>
     ${groep.plan.validatie?.meldingen?.length ? `
       <div class="fout-banner" style="margin-top:1rem">
@@ -285,6 +267,7 @@ function renderEditor(groep) {
   const volgendeDatum = berekenVolgendeDatumVoorDraft(draft);
   const totaalOk = Math.abs(totaal - 100) <= 0.01;
   const key = groepKey(groep.groepId);
+  const beschikbaar = beschikbareHoldings(groep, draft);
 
   return `
     <div class="editor-card mt1">
@@ -301,25 +284,30 @@ function renderEditor(groep) {
       <div class="form-grid">
         <div class="form-row">
           <label>Uitvoeringsdag</label>
-          <input type="number" min="1" max="31" step="1" value="${escapeHtml(draft.uitvoerDag || 5)}" oninput="updateDraftField('${key}','uitvoerDag', this.value)" />
-        </div>
-        <div class="form-row">
-          <label>Startdatum</label>
-          <input type="date" value="${escapeHtml(draft.startdatum || '')}" onchange="updateDraftField('${key}','startdatum', this.value)" />
-        </div>
-        <div class="form-row">
-          <label>Einddatum (optioneel)</label>
-          <input type="date" value="${escapeHtml(draft.einddatum || '')}" onchange="updateDraftField('${key}','einddatum', this.value)" />
+          <input type="number" min="1" max="28" step="1" value="${escapeHtml(draft.uitvoerDag || 5)}" oninput="updateDraftField('${key}','uitvoerDag', this.value)" />
         </div>
       </div>
       <div class="toggle-row">
         <label class="toggle-label"><input type="checkbox" ${draft.actief ? 'checked' : ''} onchange="updateDraftField('${key}','actief', this.checked)" /> Plan actief</label>
         <span class="muted">Volgende geplande uitvoeringsdatum: <strong>${volgendeDatum ? fmtDatum(volgendeDatum) : '–'}</strong></span>
       </div>
+      <div class="form-grid mt1">
+        <div class="form-row">
+          <label>Aandeel toevoegen aan verdeling</label>
+          <select id="alloc-add-${key}">
+            <option value="">— Kies aandeel —</option>
+            ${beschikbaar.map(h => `<option value="${h.id}">${escapeHtml(h.ticker)} — ${escapeHtml(h.naam)}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-row" style="display:flex;align-items:flex-end">
+          <button class="btn" style="height:38px" onclick="addDraftAllocation('${key}')" ${beschikbaar.length ? '' : 'disabled'}>+ Toevoegen</button>
+        </div>
+      </div>
       <div class="card mt1" style="padding:1rem 1.1rem">
         <div class="card-hd" style="margin-bottom:.75rem"><span class="card-title">Verdeling per ticker</span><strong class="${totaalOk ? 'green' : 'red'}">${pct(totaal)}</strong></div>
-        ${(groep.holdings || []).map(holding => {
-          const allocatie = draft.allocaties.find(item => item.aandeel_id === holding.id) || { percentage: 0 };
+        ${(draft.allocaties || []).map(allocatie => {
+          const holding = (groep.holdings || []).find(h => h.id === allocatie.aandeel_id);
+          if (!holding) return '';
           return `
             <div class="alloc-input-row">
               <div>
@@ -329,9 +317,11 @@ function renderEditor(groep) {
               <div class="alloc-input-wrap">
                 <input type="number" min="0" max="100" step="0.01" value="${escapeHtml(allocatie.percentage)}" oninput="updateDraftAllocation('${key}','${holding.id}', this.value)" />
                 <span>%</span>
+                <button class="btn btn-ghost" type="button" onclick="removeDraftAllocation('${key}','${holding.id}')">✕</button>
               </div>
             </div>`;
         }).join('')}
+        ${!(draft.allocaties || []).length ? '<div class="leeg-state">Voeg eerst aandelen toe aan je verdeling.</div>' : ''}
         ${!totaalOk ? '<div class="fout-banner" style="margin-top:.85rem">De totale verdeling moet exact 100% zijn.</div>' : ''}
       </div>
       <div class="card mt1" style="padding:1rem 1.1rem">
@@ -468,6 +458,24 @@ function updateDraftAllocation(groupKey, aandeelId, waarde) {
   renderGroepen();
 }
 
+function addDraftAllocation(groupKey) {
+  const groepId = fromKey(groupKey);
+  const draft = getDraft(groepId);
+  const select = document.getElementById('alloc-add-' + groupKey);
+  const aandeelId = select?.value;
+  if (!aandeelId) return;
+  if (draft.allocaties.some(item => item.aandeel_id === aandeelId)) return;
+  draft.allocaties.push({ aandeel_id: aandeelId, percentage: 0 });
+  renderGroepen();
+}
+
+function removeDraftAllocation(groupKey, aandeelId) {
+  const groepId = fromKey(groupKey);
+  const draft = getDraft(groepId);
+  draft.allocaties = draft.allocaties.filter(item => item.aandeel_id !== aandeelId);
+  renderGroepen();
+}
+
 async function savePlan(groupKey) {
   const groepId = fromKey(groupKey);
   const groep = getGroep(groepId);
@@ -482,6 +490,14 @@ async function savePlan(groupKey) {
     alert('Vul een geldig maandbedrag in.');
     return;
   }
+  if (!Number.isInteger(Number(draft.uitvoerDag)) || Number(draft.uitvoerDag) < 1 || Number(draft.uitvoerDag) > 28) {
+    alert('Uitvoeringsdag moet tussen 1 en 28 liggen.');
+    return;
+  }
+  if (!(draft.allocaties || []).length) {
+    alert('Voeg minimaal één aandeel toe aan de verdeling.');
+    return;
+  }
   if (Math.abs(totaal - 100) > 0.01) {
     alert('De verdeling moet exact 100% zijn.');
     return;
@@ -493,8 +509,6 @@ async function savePlan(groupKey) {
       maandBedrag: Number(draft.maandBedrag),
       maandBedragValuta: draft.maandBedragValuta || 'EUR',
       uitvoerDag: Number(draft.uitvoerDag),
-      startdatum: draft.startdatum,
-      einddatum: draft.einddatum || null,
       actief: !!draft.actief,
       allocaties,
     });
@@ -515,8 +529,6 @@ async function togglePlanStatus(groupKey) {
       maandBedrag: groep.plan.maandbedrag,
       maandBedragValuta: groep.plan.maandbedragValuta || 'EUR',
       uitvoerDag: groep.plan.uitvoerDag,
-      startdatum: groep.plan.startdatum,
-      einddatum: groep.plan.einddatum,
       actief: !groep.plan.actief,
       allocaties: groep.plan.allocaties.map(item => ({ aandeel_id: item.aandeel_id, percentage: Number(item.percentage) })),
     });
@@ -547,6 +559,8 @@ window.openPlanEditor = openPlanEditor;
 window.closePlanEditor = closePlanEditor;
 window.updateDraftField = updateDraftField;
 window.updateDraftAllocation = updateDraftAllocation;
+window.addDraftAllocation = addDraftAllocation;
+window.removeDraftAllocation = removeDraftAllocation;
 window.savePlan = savePlan;
 window.togglePlanStatus = togglePlanStatus;
 window.deletePlan = deletePlan;
