@@ -41,6 +41,13 @@ function pct(v) {
   return fmt(v, 2) + '%';
 }
 
+function dagOptiesHtml(geselecteerd = 5) {
+  const huidig = Math.max(1, Math.min(28, Number(geselecteerd) || 5));
+  return Array.from({ length: 28 }, (_, i) => i + 1)
+    .map(d => `<option value="${d}" ${d === huidig ? 'selected' : ''}>Dag ${d}</option>`)
+    .join('');
+}
+
 const VALUTA_OPTIES = ['EUR', 'USD', 'GBP', 'GBp', 'CHF', 'JPY', 'CAD', 'AUD', 'NOK', 'SEK', 'DKK'];
 const FX_NAAR_EUR = { EUR: 1, USD: 0.92, GBP: 1.17, GBp: 0.0117, CHF: 1.04, JPY: 0.006, CAD: 0.68, AUD: 0.60, SEK: 0.088, NOK: 0.085, DKK: 0.134 };
 
@@ -238,7 +245,7 @@ function renderPlanSamenvatting(groep) {
       <div class="meta-pill"><span>Invoerbedrag</span><strong>${groep.plan.maandbedragValuta} ${fmt(groep.plan.maandbedrag)}</strong></div>
       <div class="meta-pill"><span>Status</span><strong class="${statusClass(groep.plan)}">${statusLabel(groep.plan)}</strong></div>
       <div class="meta-pill"><span>Volgende run</span><strong>${groep.plan.volgendeUitvoering ? fmtDatum(groep.plan.volgendeUitvoering) : '–'}</strong></div>
-      <div class="meta-pill"><span>Dag van de maand</span><strong>${groep.plan.uitvoerDag}</strong></div>
+      <div class="meta-pill"><span>Koopdag</span><strong>Elke maand op dag ${groep.plan.uitvoerDag}</strong></div>
     </div>
     ${groep.plan.validatie?.meldingen?.length ? `
       <div class="fout-banner" style="margin-top:1rem">
@@ -283,8 +290,9 @@ function renderEditor(groep) {
       </div>
       <div class="form-grid">
         <div class="form-row">
-          <label>Uitvoeringsdag</label>
-          <input type="number" min="1" max="28" step="1" value="${escapeHtml(draft.uitvoerDag || 5)}" oninput="updateDraftField('${key}','uitvoerDag', this.value)" />
+          <label>Wanneer wordt gekocht?</label>
+          <select onchange="updateDraftField('${key}','uitvoerDag', this.value)">${dagOptiesHtml(draft.uitvoerDag || 5)}</select>
+          <div class="muted" style="font-size:.76rem;margin-top:.4rem">Kies dag 1 t/m 28. Valt dit op een gesloten beursdag, dan schuift uitvoering door naar de eerstvolgende handelsdag.</div>
         </div>
       </div>
       <div class="toggle-row">
@@ -366,8 +374,13 @@ function renderGroepen() {
           </div>
           <div class="groep-actions">
             <button class="btn" onclick="openPlanEditor('${key}')">${groep.plan ? '✏️ Bewerk' : '➕ Nieuw plan'}</button>
-            ${groep.plan ? `<button class="btn btn-yellow" onclick="togglePlanStatus('${key}')">${groep.plan.actief ? '⏸ Pauzeer' : '▶ Hervat'}</button>` : ''}
-            ${groep.plan ? `<button class="btn btn-red" onclick="deletePlan('${key}')">🗑 Verwijder</button>` : ''}
+            ${groep.plan ? `
+              <label class="ai-switch-wrap" title="Auto-Invest aan/uit">
+                <input type="checkbox" class="ai-switch-input" ${groep.plan.actief ? 'checked' : ''} onchange="togglePlanSwitch('${key}', this.checked)" />
+                <span class="ai-switch-slider"></span>
+                <span class="ai-switch-label ${groep.plan.actief ? 'green' : 'red'}">${groep.plan.actief ? 'Aan' : 'Uit'}</span>
+              </label>
+            ` : ''}
           </div>
         </div>
         <div class="holdings-strip">
@@ -519,7 +532,7 @@ async function savePlan(groupKey) {
   }
 }
 
-async function togglePlanStatus(groupKey) {
+async function togglePlanSwitch(groupKey, actief) {
   const groepId = fromKey(groupKey);
   const groep = getGroep(groepId);
   if (!groep?.plan) return;
@@ -529,7 +542,7 @@ async function togglePlanStatus(groupKey) {
       maandBedrag: groep.plan.maandbedrag,
       maandBedragValuta: groep.plan.maandbedragValuta || 'EUR',
       uitvoerDag: groep.plan.uitvoerDag,
-      actief: !groep.plan.actief,
+      actief: !!actief,
       allocaties: groep.plan.allocaties.map(item => ({ aandeel_id: item.aandeel_id, percentage: Number(item.percentage) })),
     });
     await herlaad();
@@ -562,7 +575,7 @@ window.updateDraftAllocation = updateDraftAllocation;
 window.addDraftAllocation = addDraftAllocation;
 window.removeDraftAllocation = removeDraftAllocation;
 window.savePlan = savePlan;
-window.togglePlanStatus = togglePlanStatus;
+window.togglePlanSwitch = togglePlanSwitch;
 window.deletePlan = deletePlan;
 
 
