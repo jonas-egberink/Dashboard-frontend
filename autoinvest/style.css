@@ -265,6 +265,18 @@
   font-size: .88rem;
 }
 
+/* Verberg browser spinner-pijltjes voor fijnere handmatige invoer */
+.no-spin::-webkit-outer-spin-button,
+.no-spin::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.no-spin {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
 .editor-actions {
   display: flex;
   justify-content: flex-end;

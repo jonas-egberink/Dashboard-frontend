@@ -281,7 +281,7 @@ function renderEditor(groep) {
       <div class="form-grid">
         <div class="form-row">
           <label>Maandbedrag</label>
-          <input type="number" min="0" step="0.01" value="${escapeHtml(draft.maandBedrag || '')}" oninput="updateDraftField('${key}','maandBedrag', this.value)" />
+          <input class="no-spin" type="number" min="0" step="any" value="${escapeHtml(draft.maandBedrag || '')}" onchange="updateDraftField('${key}','maandBedrag', this.value)" />
         </div>
         <div class="form-row">
           <label>Invoervaluta</label>
@@ -323,7 +323,7 @@ function renderEditor(groep) {
                 <div class="muted" style="font-size:.78rem">${escapeHtml(holding.naam)} · ${holding.huidigePrijsOrigineel != null ? `${holding.valuta} ${fmt(holding.huidigePrijsOrigineel)}` : 'Geen live koers'}</div>
               </div>
               <div class="alloc-input-wrap">
-                <input type="number" min="0" max="100" step="0.01" value="${escapeHtml(allocatie.percentage)}" oninput="updateDraftAllocation('${key}','${holding.id}', this.value)" />
+                <input type="number" min="0" max="100" step="0.01" value="${escapeHtml(allocatie.percentage)}" onchange="updateDraftAllocation('${key}','${holding.id}', this.value)" />
                 <span>%</span>
                 <button class="btn btn-ghost" type="button" onclick="removeDraftAllocation('${key}','${holding.id}')">✕</button>
               </div>
