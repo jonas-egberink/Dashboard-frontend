@@ -14,6 +14,7 @@
       cursor: pointer; user-select: none;
     }
     .rekening-header:hover { background: var(--border); }
+    .rekening-header:has(.rekening-stats:hover) { background: var(--card2); }
     .rekening-naam { font-weight: 700; font-size: .9rem; display: flex; align-items: center; gap: .6rem; }
     .rekening-pijl { font-size: .75rem; color: var(--muted); transition: transform .2s; }
     .rekening-pijl.open { transform: rotate(90deg); }
