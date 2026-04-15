@@ -1,6 +1,18 @@
 /* financieel/style.css — alleen pagina-specifieke layout */
 /* Alle kleuren, componenten en tokens komen uit ../shared/theme.css */
 
+/* Rekening stats - klikbaar voor toggle percentage */
+.rekening-stats {
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  padding: 0.5rem;
+  border-radius: 6px;
+  margin: -0.5rem;
+}
+.rekening-stats:hover {
+  background-color: rgba(99,102,241,0.08);
+}
+
 /* Detail sectie die openklap per aandeel */
 .periode-btns {
   display: flex;

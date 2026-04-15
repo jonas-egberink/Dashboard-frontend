@@ -1,4 +1,5 @@
 let _posities = [], _rekeningen = [], _huidigAandeel = null, _periode = 'alles';
+let _rekReningShowPct = {}; // Tracking welke rekeningen procenten moeten tonen
 
 // Valuta symbool helper
 const sym = v => ({ EUR: '€', USD: '$', GBP: '£', GBp: 'p', CHF: 'CHF ', JPY: '¥', CAD: 'C$', AUD: 'A$', NOK: 'kr ', SEK: 'kr ', DKK: 'kr ' }[v] || (v + ' '));
@@ -46,34 +47,41 @@ function renderRekeningen(rekeningen) {
     container.innerHTML = '<div class="leeg">Geen aandelen gevonden. Voeg er een toe hieronder.</div>';
     return;
   }
-  container.innerHTML = rekeningen.map(r => `
+  container.innerHTML = rekeningen.map(r => {
+    const sleutel = r.naam.replace(/\s/g,'_');
+    const toonPct = _rekReningShowPct[r.naam] || false;
+    const ongrPct = r.totalen.totaleKost > 0 ? (r.totalen.ongrealiseerdGV / r.totalen.totaleKost * 100).toFixed(1) : 0;
+    const grPct = r.totalen.totaleKost > 0 ? (r.totalen.grealiseerdGV / r.totalen.totaleKost * 100).toFixed(1) : 0;
+    const totaalPct = r.totalen.totaleKost > 0 ? ((r.totalen.ongrealiseerdGV + r.totalen.grealiseerdGV) / r.totalen.totaleKost * 100).toFixed(1) : 0;
+
+    return `
     <div class="rekening-blok">
       <div class="rekening-header" onclick="toggleRekening('${r.naam}')">
         <div class="rekening-naam">
-          <span class="rekening-pijl open" id="pijl-${r.naam.replace(/\s/g,'_')}">▶</span>
+          <span class="rekening-pijl open" id="pijl-${sleutel}">▶</span>
           🏦 ${r.naam}
           <span style="font-size:.72rem;color:var(--muted);font-weight:400">${r.totalen.aantalAandelen} positie${r.totalen.aantalAandelen !== 1 ? 's' : ''}</span>
         </div>
-        <div class="rekening-stats">
+        <div class="rekening-stats" id="stats-${sleutel}" onclick="toggleRekeningPct('${r.naam}'); event.stopPropagation();">
           <div class="rekening-stat">
             <div class="rekening-stat-label">Waarde (EUR)</div>
             <div class="rekening-stat-val">€${fmt(r.totalen.portfolioWaarde)}</div>
           </div>
           <div class="rekening-stat">
             <div class="rekening-stat-label">Ongerealiseerd</div>
-            <div class="rekening-stat-val ${kleur(r.totalen.ongrealiseerdGV)}">${fmtBedrag(r.totalen.ongrealiseerdGV, true)}</div>
+            <div class="rekening-stat-val ${kleur(r.totalen.ongrealiseerdGV)}">${toonPct ? (ongrPct >= 0 ? '+' : '') + ongrPct + '%' : fmtBedrag(r.totalen.ongrealiseerdGV, true)}</div>
           </div>
           <div class="rekening-stat">
             <div class="rekening-stat-label">Gerealiseerd</div>
-            <div class="rekening-stat-val ${kleur(r.totalen.grealiseerdGV)}">${fmtBedrag(r.totalen.grealiseerdGV, true)}</div>
+            <div class="rekening-stat-val ${kleur(r.totalen.grealiseerdGV)}">${toonPct ? (grPct >= 0 ? '+' : '') + grPct + '%' : fmtBedrag(r.totalen.grealiseerdGV, true)}</div>
           </div>
           <div class="rekening-stat">
             <div class="rekening-stat-label">Totaal G/V</div>
-            <div class="rekening-stat-val ${kleur(r.totalen.totaalGV)}">${fmtBedrag(r.totalen.totaalGV, true)}</div>
+            <div class="rekening-stat-val ${kleur(r.totalen.totaalGV)}">${toonPct ? (totaalPct >= 0 ? '+' : '') + totaalPct + '%' : fmtBedrag(r.totalen.totaalGV, true)}</div>
           </div>
         </div>
       </div>
-      <div class="rekening-tabel-wrap" id="tabel-${r.naam.replace(/\s/g,'_')}">
+      <div class="rekening-tabel-wrap" id="tabel-${sleutel}">
         <table>
           <thead>
             <tr>
@@ -99,7 +107,8 @@ function renderRekeningen(rekeningen) {
           </tbody>
         </table>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 function toggleRekening(naam) {
@@ -110,6 +119,11 @@ function toggleRekening(naam) {
   const open = !tabel.classList.contains('verborgen');
   tabel.classList.toggle('verborgen', open);
   pijl.classList.toggle('open', !open);
+}
+
+function toggleRekeningPct(naam) {
+  _rekReningShowPct[naam] = !(_rekReningShowPct[naam] || false);
+  renderRekeningen(_rekeningen);
 }
 
 function updateDatalijsten() {
