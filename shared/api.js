@@ -3,7 +3,7 @@
    Pas alleen HIER de API_URL aan na Render deployment.
    ═══════════════════════════════════════════════════════ */
 
-const API_URL = window.DASHBOARD_API_URL || 'https://dashboard-backend.onrender.com';
+const API_URL = window.DASHBOARD_API_URL || 'https://dashboard-backend-iff7.onrender.com';
 
 const api = {
   // ── TOKEN BEHEER ──────────────────────────────────────
