@@ -1,9 +1,9 @@
 /* ═══════════════════════════════════════════════════════
    shared/api.js — Één API client voor het hele dashboard
-   Pas alleen HIER de API_URL aan na Railway deployment.
+   Pas alleen HIER de API_URL aan na Render deployment.
    ═══════════════════════════════════════════════════════ */
 
-const API_URL = window.DASHBOARD_API_URL || 'https://dashboard-backend.up.railway.app';
+const API_URL = window.DASHBOARD_API_URL || 'https://dashboard-backend.onrender.com';
 
 const api = {
   // ── TOKEN BEHEER ──────────────────────────────────────

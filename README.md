@@ -36,25 +36,25 @@ npm run dev
 
 Test in browser: `http://localhost:3000/health` → moet `{"status":"ok"}` tonen.
 
-## Stap 5 — Railway deployment (backend)
+## Stap 5 — Render deployment (backend)
 
-1. Ga naar **railway.app** → New Project → Deploy from GitHub repo
+1. Ga naar **render.com** → New → Web Service → Connect GitHub repo
 2. Selecteer je `dashboard-backend` repo
-3. Ga naar **Variables** en voeg toe:
+3. Ga naar **Environment** en voeg toe:
    - `SUPABASE_URL`
    - `SUPABASE_SERVICE_KEY`
    - `JWT_SECRET`
    - `ALLOWED_ORIGINS` (je GitHub Pages URL)
-4. Railway detecteert automatisch Node.js en runt `npm start`
-5. Kopieer je Railway URL (bijv. `https://dashboard-backend-production.up.railway.app`)
+4. Render detecteert automatisch Node.js en runt `npm start`
+5. Kopieer je Render URL (bijv. `https://dashboard-backend.onrender.com`)
 
 ## Stap 6 — Frontend API_URL instellen
 
 In **elke** `api.js` in de Frontend-Dashboard mappen, verander:
 ```js
-const API_URL = 'https://jouw-backend.railway.app';
+const API_URL = 'https://jouw-backend.onrender.com';
 ```
-naar je echte Railway URL.
+naar je echte Render URL.
 
 ## Stap 7 — GitHub Pages (frontend)
 
